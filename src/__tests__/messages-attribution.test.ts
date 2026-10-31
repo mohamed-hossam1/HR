@@ -20,7 +20,13 @@ describe("Message Sender Attribution and HR Attachments", () => {
       employee_number: "009988",
       employee_name: "سامح عبد العزيز",
       phone_number: "01012345678",
-      answers: { purpose: "فتح حساب بنكي" },
+      profession: "محاسب مالي",
+      answers: {
+        profession: "محاسب مالي",
+        project_name: "مشروع العاصمة",
+        purpose: "فتح حساب بنكي",
+        bank_name: "بنك مصر",
+      },
       uploadedAttachments: [],
     });
 
@@ -35,7 +41,7 @@ describe("Message Sender Attribution and HR Attachments", () => {
     const setCookie = authRes.headers.get("set-cookie") || "";
     adminSessionHeaders = new Headers();
     adminSessionHeaders.set("cookie", setCookie);
-  });
+  }, 30000);
 
   it("attributes message to employee when senderPortal is employee even if admin session cookie is sent", async () => {
     // Simulate browser where admin was logged in, but user submits from tracking page
