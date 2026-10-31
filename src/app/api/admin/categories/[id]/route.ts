@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/db";
-import { categories, case_audit_logs } from "@/db/schema";
+import { categories, cases, case_audit_logs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -106,5 +106,65 @@ export async function PATCH(
     return NextResponse.json({ success: true, category: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({ headers: req.headers });
+    if (!session) {
+      return NextResponse.json(
+        { error: "غير مصرح لك بحذف الفئات" },
+        { status: 401 }
+      );
+    }
+
+    const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: "معرف الفئة مطلوب" }, { status: 400 });
+    }
+
+    const [existing] = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.id, id))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json({ error: "الفئة غير موجودة" }, { status: 404 });
+    }
+
+    // Delete any cases submitted under this category first so cascading data is cleaned up
+    // and no foreign key constraint errors occur
+    await db.delete(cases).where(eq(cases.category_id, id));
+
+    // Delete the category
+    await db.delete(categories).where(eq(categories.id, id));
+
+    // Audit log
+    await db.insert(case_audit_logs).values({
+      action: "DELETE_CATEGORY",
+      actor: session.user.email || session.user.name || "admin",
+      details: {
+        categoryId: id,
+        nameAr: existing.name_ar,
+        type: existing.type,
+        slug: existing.slug,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `تم حذف الفئة "${existing.name_ar}" بنجاح`,
+    });
+  } catch (error: any) {
+    console.error("Failed to delete category:", error);
+    return NextResponse.json(
+      { error: error.message || "فشل حذف الفئة" },
+      { status: 500 }
+    );
   }
 }

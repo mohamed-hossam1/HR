@@ -20,7 +20,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-
+import { CaseDeleteButton } from "@/components/admin/case-delete-button";
 
 interface ComplaintsPageProps {
   searchParams: Promise<{
@@ -228,13 +228,21 @@ export default async function AdminComplaintsPage({ searchParams }: ComplaintsPa
                         </span>
                       </td>
                       <td className="p-3.5 pl-6 text-center">
-                        <Link
-                          href={`/admin/complaints/${c.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-purple-900 hover:text-white transition-colors"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>فتح الشكوى</span>
-                        </Link>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <Link
+                            href={`/admin/complaints/${c.id}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-purple-900 hover:text-white transition-colors"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>فتح الشكوى</span>
+                          </Link>
+                          <CaseDeleteButton
+                            caseId={c.id}
+                            reference={c.reference}
+                            employeeName={c.employee_name}
+                            caseType="complaint"
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

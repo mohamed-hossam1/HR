@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   ShieldCheck,
@@ -29,6 +30,8 @@ import {
   AlertCircle,
   Loader2,
   FileText,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
 
 interface AdminCaseDetailProps {
@@ -37,6 +40,7 @@ interface AdminCaseDetailProps {
 }
 
 export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps) {
+  const router = useRouter();
   const [caseData, setCaseData] = useState(initialCase);
   const [messages, setMessages] = useState<any[]>(initialCase.messages || []);
   const [attachments, setAttachments] = useState<any[]>(initialCase.attachments || []);
@@ -65,6 +69,10 @@ export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps
   const [editReason, setEditReason] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // Delete Case State
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingCase, setIsDeletingCase] = useState(false);
 
   const statusConfig = STATUS_LABELS[caseData.status] || {
     label: caseData.status,
@@ -283,6 +291,26 @@ export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps
     }
   };
 
+  // Delete Case
+  const handleDeleteCase = async () => {
+    setIsDeletingCase(true);
+    setActionError(null);
+    try {
+      const res = await fetch(`/api/admin/cases/${caseData.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل حذف المعاملة");
+
+      router.push(backLink);
+      router.refresh();
+    } catch (err: any) {
+      setActionError(err.message || "حدث خطأ أثناء محاولة حذف المعاملة");
+      setIsDeletingCase(false);
+      setShowDeleteModal(false);
+    }
+  };
+
   const backLink = caseData.case_type === "request" ? "/admin/requests" : "/admin/complaints";
   const backLabel = caseData.case_type === "request" ? "قائمة الطلبات" : "قائمة الشكاوى";
 
@@ -340,6 +368,17 @@ export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps
               >
                 <Edit className="w-3.5 h-3.5 ml-1" />
                 تعديل البيانات
+              </Button>
+
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDeleteModal(true)}
+                className="text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white"
+              >
+                <Trash2 className="w-3.5 h-3.5 ml-1" />
+                حذف {caseData.case_type === "request" ? "الطلب" : "الشكوى"}
               </Button>
             </div>
           </div>
@@ -795,6 +834,71 @@ export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete Case Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <Card className="max-w-md w-full bg-white shadow-2xl border-rose-200 animate-in fade-in zoom-in-95 text-right">
+            <CardHeader className="border-b border-slate-100 pb-3">
+              <CardTitle className="text-base font-bold text-rose-700 flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+                <span>تأكيد حذف {caseData.case_type === "request" ? "الطلب" : "الشكوى"} نهائياً</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-xs text-rose-900 leading-relaxed">
+                <p className="font-bold">
+                  هل أنت متأكد من رغبتك في حذف هذا {caseData.case_type === "request" ? "الطلب" : "الشكوى"}؟
+                </p>
+                <div className="text-[11px] text-rose-700 space-y-1">
+                  <div>• رقم المعاملة: <span className="font-mono font-bold">{caseData.reference}</span></div>
+                  <div>• اسم الموظف: <span className="font-semibold">{caseData.employee_name}</span></div>
+                  <div>• الرقم الثابت: <span className="font-mono font-semibold">{caseData.employee_number}</span></div>
+                  <div>• الفئة: <span className="font-semibold">{caseData.category_name_ar}</span></div>
+                </div>
+                <div className="text-[11px] text-rose-800 font-semibold flex items-start gap-1.5 pt-1">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                  <span>
+                    تحذير: هذا الإجراء نهائي ولا يمكن التراجع عنه. سيتم مسح كافة البيانات والمستندات المرفقة والمحادثات المرتبطة بهذه المعاملة نهائياً.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeletingCase}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="text-xs font-semibold"
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isDeletingCase}
+                  onClick={handleDeleteCase}
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs"
+                >
+                  {isDeletingCase ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 ml-1.5 animate-spin" />
+                      <span>جاري الحذف...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5 ml-1.5" />
+                      <span>تأكيد الحذف النهائي</span>
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

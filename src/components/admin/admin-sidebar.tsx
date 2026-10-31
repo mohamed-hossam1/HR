@@ -40,7 +40,7 @@ export function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 min-h-screen">
+    <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto">
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-800 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-sm">

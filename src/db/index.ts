@@ -8,13 +8,16 @@ declare global {
   var __db_pool: Pool | undefined;
 }
 
+const isSupabase = env.DATABASE_URL.includes("supabase.com") || env.DATABASE_URL.includes("pooler");
+
 const pool =
   global.__db_pool ??
   new Pool({
     connectionString: env.DATABASE_URL,
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 10000,
+    connectionTimeoutMillis: 30000,
+    ssl: isSupabase ? { rejectUnauthorized: false } : undefined,
   });
 
 if (process.env.NODE_ENV !== "production") {

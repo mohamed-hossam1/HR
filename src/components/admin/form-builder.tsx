@@ -16,6 +16,8 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
+  Loader2,
   HelpCircle,
   Layers,
   Lock,
@@ -50,6 +52,31 @@ export function FormBuilder({ initialData, isNew = false }: FormBuilderProps) {
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteCategory = async () => {
+    if (!initialData?.id) return;
+    setIsDeleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/admin/categories/${initialData.id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "فشل حذف الفئة");
+      }
+
+      router.push("/admin/categories");
+      router.refresh();
+    } catch (err: any) {
+      setError(err.message || "حدث خطأ أثناء محاولة حذف الفئة");
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+    }
+  };
 
   // Add field
   const handleAddField = () => {
@@ -193,6 +220,19 @@ export function FormBuilder({ initialData, isNew = false }: FormBuilderProps) {
             <Save className="w-3.5 h-3.5 ml-1" />
             حفظ الفئة والنموذج
           </Button>
+
+          {!isNew && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDeleteModal(true)}
+              className="text-xs font-bold text-rose-600 border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+            >
+              <Trash2 className="w-3.5 h-3.5 ml-1 text-rose-600" />
+              حذف الفئة
+            </Button>
+          )}
         </div>
       </div>
 
@@ -607,6 +647,65 @@ export function FormBuilder({ initialData, isNew = false }: FormBuilderProps) {
                 ))
               )}
             </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Delete Category Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 text-right">
+          <Card className="max-w-md w-full bg-white shadow-2xl border-rose-200 animate-in fade-in zoom-in-95">
+            <CardHeader className="border-b border-slate-100 pb-3">
+              <CardTitle className="text-base font-bold text-rose-700 flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+                <span>تأكيد حذف الفئة والنموذج نهائياً</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-xs text-rose-900 leading-relaxed">
+                <p className="font-bold">
+                  هل أنت متأكد من رغبتك في حذف فئة &ldquo;{nameAr}&rdquo;؟
+                </p>
+                <div className="text-[11px] text-rose-800 font-semibold flex items-start gap-1.5 pt-1">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                  <span>
+                    تحذير: سيتم حذف هذا النموذج نهائياً ولن يظهر بعد الآن في بوابة العاملين. كما سيتم حذف كافة الطلبات المقدمة تحت هذه الفئة ومرفقاتها.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={() => setShowDeleteModal(false)}
+                  className="text-xs font-semibold"
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={isDeleting}
+                  onClick={handleDeleteCategory}
+                  className="bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 ml-1.5 animate-spin" />
+                      <span>جاري الحذف...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5 ml-1.5" />
+                      <span>تأكيد حذف الفئة</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
           </Card>
         </div>
       )}

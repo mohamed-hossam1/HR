@@ -18,7 +18,7 @@ import {
   FileText,
   AlertOctagon,
 } from "lucide-react";
-
+import { CategoryDeleteButton } from "@/components/admin/category-delete-button";
 
 export default async function AdminCategoriesPage() {
   const reqHeaders = await headers();
@@ -99,13 +99,20 @@ export default async function AdminCategoriesPage() {
                 <span className="text-[11px] text-slate-400">
                   الترتيب: {cat.display_order}
                 </span>
-                <Link
-                  href={`/admin/categories/${cat.id}/edit`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-blue-900 hover:text-white transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>تعديل الحقول والنموذج</span>
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/admin/categories/${cat.id}/edit`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-blue-900 hover:text-white transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>تعديل النموذج</span>
+                  </Link>
+                  <CategoryDeleteButton
+                    categoryId={cat.id}
+                    categoryName={cat.name_ar}
+                    categoryType="request"
+                  />
+                </div>
               </div>
             </Card>
           ))}
@@ -152,13 +159,20 @@ export default async function AdminCategoriesPage() {
                 <span className="text-[11px] text-slate-400">
                   الترتيب: {cat.display_order}
                 </span>
-                <Link
-                  href={`/admin/categories/${cat.id}/edit`}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-purple-900 hover:text-white transition-colors"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>تعديل الحقول والنموذج</span>
-                </Link>
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/admin/categories/${cat.id}/edit`}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700 hover:bg-purple-900 hover:text-white transition-colors"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>تعديل النموذج</span>
+                  </Link>
+                  <CategoryDeleteButton
+                    categoryId={cat.id}
+                    categoryName={cat.name_ar}
+                    categoryType="complaint"
+                  />
+                </div>
               </div>
             </Card>
           ))}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { auth } from "@/lib/auth";
+import { env } from "@/lib/env";
 
 describe("Better Auth Username Authentication", () => {
   it("authenticates admin user with username and password", async () => {
@@ -7,8 +8,8 @@ describe("Better Auth Username Authentication", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "admin",
-        password: "AdminStrongPass2026!",
+        username: env.ADMIN_INITIAL_USERNAME,
+        password: env.ADMIN_INITIAL_PASSWORD,
       }),
     });
 
@@ -17,8 +18,7 @@ describe("Better Auth Username Authentication", () => {
 
     const body = await res.json();
     expect(body.user).toBeDefined();
-    expect(body.user.username).toBe("admin");
-    expect(body.user.email).toBe("admin@portal.local");
+    expect(body.user.username).toBe(env.ADMIN_INITIAL_USERNAME.toLowerCase());
     expect(body.token).toBeDefined();
   });
 
@@ -27,8 +27,8 @@ describe("Better Auth Username Authentication", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "ADMIN",
-        password: "AdminStrongPass2026!",
+        username: env.ADMIN_INITIAL_USERNAME.toUpperCase(),
+        password: env.ADMIN_INITIAL_PASSWORD,
       }),
     });
 
@@ -36,7 +36,7 @@ describe("Better Auth Username Authentication", () => {
     expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.user.username).toBe("admin");
+    expect(body.user.username).toBe(env.ADMIN_INITIAL_USERNAME.toLowerCase());
   });
 
   it("fails when password is incorrect", async () => {
@@ -44,7 +44,7 @@ describe("Better Auth Username Authentication", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        username: "admin",
+        username: env.ADMIN_INITIAL_USERNAME,
         password: "WrongPassword999!",
       }),
     });

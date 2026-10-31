@@ -8,6 +8,12 @@ import { isDeviceAuthorizedForCase } from "@/lib/device-token";
 
 describe("End-to-End System Workflows (Definition of Done)", () => {
   afterAll(async () => {
+    if (createdCaseRef) {
+      await db.delete(cases).where(eq(cases.reference, createdCaseRef));
+    }
+    if (deviceId) {
+      await db.delete(trusted_devices).where(eq(trusted_devices.id, deviceId));
+    }
     await pool.end();
   });
 
@@ -141,67 +147,81 @@ describe("End-to-End System Workflows (Definition of Done)", () => {
 
   it("Workflow 5: Dynamic category creation without code changes", async () => {
     const slug = `special-leave-${Date.now()}`;
-    const [newCategory] = await db
-      .insert(categories)
-      .values({
-        type: "request",
-        slug,
-        name_ar: "طلب إجازة استثنائية",
-        description_ar: "إجازة خاصة لرعاية الوالدين أو ظروف طارئة",
-        icon: "Calendar",
-        field_schema: [
-          {
-            id: "leave_days",
-            label_ar: "عدد أيام الإجازة المطلوبة",
-            type: "number",
-            required: true,
-            order: 1,
-          },
-          {
-            id: "leave_reason",
-            label_ar: "سبب الإجازة الاستثنائية",
-            type: "textarea",
-            required: true,
-            order: 2,
-          },
-        ],
-        form_version: 1,
-        is_active: true,
-        display_order: 50,
-      })
-      .returning();
+    let catId: string | undefined;
+    let submittedRef: string | undefined;
 
-    expect(newCategory).toBeDefined();
-    expect(newCategory.name_ar).toBe("طلب إجازة استثنائية");
+    try {
+      const [newCategory] = await db
+        .insert(categories)
+        .values({
+          type: "request",
+          slug,
+          name_ar: "طلب إجازة استثنائية",
+          description_ar: "إجازة خاصة لرعاية الوالدين أو ظروف طارئة",
+          icon: "Calendar",
+          field_schema: [
+            {
+              id: "leave_days",
+              label_ar: "عدد أيام الإجازة المطلوبة",
+              type: "number",
+              required: true,
+              order: 1,
+            },
+            {
+              id: "leave_reason",
+              label_ar: "سبب الإجازة الاستثنائية",
+              type: "textarea",
+              required: true,
+              order: 2,
+            },
+          ],
+          form_version: 1,
+          is_active: true,
+          display_order: 50,
+        })
+        .returning();
 
-    // Employee immediately submits this newly created category without code changes!
-    const submission = await CaseService.submitCase({
-      caseType: "request",
-      categorySlug: slug,
-      employee_number: "009988",
-      employee_name: "طارق سليم",
-      phone_number: "01234567890",
-      answers: {
+      catId = newCategory.id;
+      expect(newCategory).toBeDefined();
+      expect(newCategory.name_ar).toBe("طلب إجازة استثنائية");
+
+      // Employee immediately submits this newly created category without code changes!
+      const submission = await CaseService.submitCase({
+        caseType: "request",
+        categorySlug: slug,
+        employee_number: "009988",
+        employee_name: "طارق سليم",
+        phone_number: "01234567890",
+        answers: {
+          leave_days: 5,
+          leave_reason: "ظرف عائلي طارئ",
+        },
+        uploadedAttachments: [],
+      });
+
+      submittedRef = submission.reference;
+      expect(submission.reference).toMatch(/^REQ-\d{4}-\d{6}$/);
+      expect(submission.categoryNameAr).toBe("طلب إجازة استثنائية");
+
+      // Check that historical submission snapshot contains the exact fields
+      const [savedCase] = await db
+        .select()
+        .from(cases)
+        .where(eq(cases.reference, submission.reference))
+        .limit(1);
+
+      expect(savedCase.category_schema_snapshot).toHaveLength(2);
+      expect(savedCase.answers).toEqual({
         leave_days: 5,
         leave_reason: "ظرف عائلي طارئ",
-      },
-      uploadedAttachments: [],
-    });
-
-    expect(submission.reference).toMatch(/^REQ-\d{4}-\d{6}$/);
-    expect(submission.categoryNameAr).toBe("طلب إجازة استثنائية");
-
-    // Check that historical submission snapshot contains the exact fields
-    const [savedCase] = await db
-      .select()
-      .from(cases)
-      .where(eq(cases.reference, submission.reference))
-      .limit(1);
-
-    expect(savedCase.category_schema_snapshot).toHaveLength(2);
-    expect(savedCase.answers).toEqual({
-      leave_days: 5,
-      leave_reason: "ظرف عائلي طارئ",
-    });
+      });
+    } finally {
+      if (submittedRef) {
+        await db.delete(cases).where(eq(cases.reference, submittedRef));
+      }
+      if (catId) {
+        await db.delete(categories).where(eq(categories.id, catId));
+      }
+    }
   });
 });

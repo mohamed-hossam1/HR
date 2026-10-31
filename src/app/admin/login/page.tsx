@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
+    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-100/70">
       <Card className="w-full max-w-md border-slate-200/90 shadow-md bg-white">
         <CardHeader className="text-center pb-4">
           <div className="w-14 h-14 bg-blue-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
