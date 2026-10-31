@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { cases, case_status_history, case_audit_logs } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { STATUS_LABELS, formatStatusHistoryNote } from "@/lib/validation";
 
 const statusUpdateSchema = z.object({
   newStatus: z.enum([
@@ -58,13 +59,18 @@ export async function POST(
       })
       .where(eq(cases.id, id));
 
+    const prevLabel = STATUS_LABELS[previousStatus]?.label || previousStatus;
+    const newLabel = STATUS_LABELS[newStatus]?.label || newStatus;
+    const defaultNote = `تم تغيير الحالة من "${prevLabel}" إلى "${newLabel}"`;
+    const finalNote = note ? formatStatusHistoryNote(note) : defaultNote;
+
     // Record status history
     await db.insert(case_status_history).values({
       case_id: id,
       previous_status: previousStatus,
       new_status: newStatus,
       actor: session.user.name || "مدير الموارد البشرية",
-      note: note || `تم تغيير الحالة من "${previousStatus}" إلى "${newStatus}"`,
+      note: finalNote,
     });
 
     // Record audit log
@@ -75,7 +81,9 @@ export async function POST(
       details: {
         previousStatus,
         newStatus,
-        note,
+        previousStatusAr: prevLabel,
+        newStatusAr: newLabel,
+        note: finalNote,
       },
     });
 

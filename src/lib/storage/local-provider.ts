@@ -84,16 +84,24 @@ export class LocalStorageProvider implements IStorageProvider {
     )}&expires=${expires}&token=${token}&filename=${encodeURIComponent(originalFilename || "file")}`;
   }
 
+  private cachedUsage: { data: StorageUsageSummary; expiresAt: number } | null = null;
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+
   async deleteObject(key: string): Promise<void> {
     try {
       const filePath = path.join(UPLOADS_DIR, key);
       await fs.unlink(filePath);
+      this.cachedUsage = null;
     } catch {
       // Ignore if already deleted
     }
   }
 
-  async getStorageUsage(): Promise<StorageUsageSummary> {
+  async getStorageUsage(forceRefresh: boolean = false): Promise<StorageUsageSummary> {
+    if (!forceRefresh && this.cachedUsage && Date.now() < this.cachedUsage.expiresAt) {
+      return this.cachedUsage.data;
+    }
+
     const [result] = await db
       .select({
         totalBytes: sql<number>`COALESCE(SUM(${attachments.file_size}), 0)::bigint`,
@@ -117,12 +125,19 @@ export class LocalStorageProvider implements IStorageProvider {
       warningLevel = "warning_70";
     }
 
-    return {
+    const summary: StorageUsageSummary = {
       totalBytes,
       objectCount,
       softLimitMb: env.B2_SOFT_STORAGE_LIMIT_MB,
       usagePercentage,
       warningLevel,
     };
+
+    this.cachedUsage = {
+      data: summary,
+      expiresAt: Date.now() + this.CACHE_TTL_MS,
+    };
+
+    return summary;
   }
 }

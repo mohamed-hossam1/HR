@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { STATUS_LABELS, formatCairoDate, formatBytesArabic } from "@/lib/validation";
+import { STATUS_LABELS, formatCairoDate, formatBytesArabic, formatStatusHistoryNote } from "@/lib/validation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
-  ShieldCheck,
-  ShieldAlert,
   Clock,
   User,
   Phone,
@@ -32,6 +30,7 @@ import {
   FileText,
   Trash2,
   AlertTriangle,
+  Paperclip,
 } from "lucide-react";
 
 interface AdminCaseDetailProps {
@@ -50,9 +49,6 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
   const [selectedStatus, setSelectedStatus] = useState(initialCase.status);
   const [statusNote, setStatusNote] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-
-  // Identity Verification State
-  const [isVerifying, setIsVerifying] = useState(false);
 
   // Message / Document Response State
   const [messageText, setMessageText] = useState("");
@@ -80,26 +76,6 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
     bg: "bg-slate-100",
   };
 
-  // Toggle Identity Verification
-  const handleToggleVerification = async () => {
-    setIsVerifying(true);
-    setActionError(null);
-    try {
-      const nextVal = !caseData.is_identity_verified;
-      const res = await fetch(`/api/admin/cases/${caseData.id}/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ verified: nextVal }),
-      });
-      if (!res.ok) throw new Error("فشل تعديل حالة التحقق");
-      setCaseData((prev: any) => ({ ...prev, is_identity_verified: nextVal }));
-    } catch (err: any) {
-      setActionError(err.message);
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
   // Update Status
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,6 +93,12 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "فشل تغيير الحالة");
 
+      const prevLabel = STATUS_LABELS[caseData.status]?.label || caseData.status;
+      const newLabel = STATUS_LABELS[selectedStatus]?.label || selectedStatus;
+      const historyNote = statusNote.trim()
+        ? formatStatusHistoryNote(statusNote.trim())
+        : `تم تغيير الحالة من "${prevLabel}" إلى "${newLabel}"`;
+
       setCaseData((prev: any) => ({
         ...prev,
         status: selectedStatus,
@@ -126,7 +108,7 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
             previous_status: prev.status,
             new_status: selectedStatus,
             actor: "مدير الموارد البشرية",
-            note: statusNote || undefined,
+            note: historyNote,
             created_at: new Date().toISOString(),
           },
           ...(prev.history || []),
@@ -178,11 +160,17 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
         let isUploaded = false;
 
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+
           const uploadRes = await fetch(ticket.uploadUrl, {
             method: "PUT",
             headers: { "Content-Type": uploadFile.type || "application/octet-stream" },
             body: uploadFile,
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
+
           if (uploadRes.ok) {
             isUploaded = true;
           }
@@ -221,6 +209,7 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          senderPortal: "admin",
           messageBody: messageText.trim() || "مرفق مستند رسمي من الموارد البشرية",
           isInternal: isInternalNote,
           attachments: newAttachmentsPayload,
@@ -244,11 +233,14 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
         },
       ]);
 
-      if (uploadFile && newAttachmentsPayload.length > 0) {
+      if (msgData.attachments && msgData.attachments.length > 0) {
+        setAttachments((prev) => [...prev, ...msgData.attachments]);
+      } else if (uploadFile && newAttachmentsPayload.length > 0) {
         setAttachments((prev) => [
           ...prev,
           {
             id: newAttachmentsPayload[0].storageKey,
+            messageId: msgData.message.id,
             filename: uploadFile.name,
             fileSize: uploadFile.size,
             fileType: uploadFile.type,
@@ -430,40 +422,6 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
               </span>
             </div>
           </div>
-
-          {/* Identity Verification Toggle */}
-          <div className="mt-5 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl">
-            <div className="flex items-center gap-2">
-              {caseData.is_identity_verified ? (
-                <ShieldCheck className="w-5 h-5 text-emerald-600" />
-              ) : (
-                <ShieldAlert className="w-5 h-5 text-amber-600" />
-              )}
-              <div>
-                <p className="text-xs font-bold text-slate-800">
-                  حالة التحقق اليدوي من هوية الموظف:{" "}
-                  {caseData.is_identity_verified ? (
-                    <span className="text-emerald-700">تم التحقق يدوياً بمطابقة المستندات</span>
-                  ) : (
-                    <span className="text-amber-700">لم يتم التحقق يدوياً بعد</span>
-                  )}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  يجب مطابقة بطاقة الرقم القومي قبل تسليم مستندات الرواتب أو البيانات السرية
-                </p>
-              </div>
-            </div>
-
-            <Button
-              variant={caseData.is_identity_verified ? "outline" : "success"}
-              size="sm"
-              onClick={handleToggleVerification}
-              disabled={isVerifying}
-              className="text-xs font-bold cursor-pointer"
-            >
-              {caseData.is_identity_verified ? "إلغاء التحقق" : "تأكيد التحقق من الهوية"}
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
@@ -554,6 +512,103 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
         </CardContent>
       </Card>
 
+      {/* Official HR Response Documents Card */}
+      {attachments.filter((a) => a.uploaderType === "hr").length > 0 && (
+        <Card className="border-emerald-200 bg-emerald-50/40 shadow-xs">
+          <CardHeader className="pb-3 border-b border-emerald-100 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
+              <FileCheck className="w-5 h-5 text-emerald-700" />
+              <span>المستندات والقرارات الصادرة من الموارد البشرية للموظف ({attachments.filter((a) => a.uploaderType === "hr").length})</span>
+            </div>
+            <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+              مستندات صادرة ومتاحة للموظف
+            </span>
+          </CardHeader>
+          <CardContent className="p-4 space-y-2.5">
+            {attachments
+              .filter((a) => a.uploaderType === "hr")
+              .map((doc: any) => (
+                <div
+                  key={doc.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-white border border-emerald-200 shadow-2xs hover:border-emerald-300 transition-colors"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-extrabold text-xs uppercase shrink-0">
+                      {doc.filename.split(".").pop() || "FILE"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-slate-900 truncate">{doc.filename}</p>
+                      <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                        <span>{formatBytesArabic(doc.fileSize)}</span>
+                        <span>•</span>
+                        <span>تاريخ الرفع: {formatCairoDate(doc.createdAt)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a
+                    href={doc.downloadUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    download={doc.filename}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-emerald-700 text-white hover:bg-emerald-800 transition-colors shadow-xs shrink-0"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    <span>تحميل / معاينة المستند</span>
+                  </a>
+                </div>
+              ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Status History / Timeline */}
+      <Card className="border-slate-200 bg-white shadow-xs">
+        <CardHeader className="pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
+            <Clock className="w-4 h-4 text-blue-900" />
+            <span>سجل وتطورات الحالة</span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4 relative before:absolute before:inset-0 before:right-3 before:w-0.5 before:bg-slate-200">
+            {caseData.history?.map((hist: any, index: number) => {
+              const histStatus = STATUS_LABELS[hist.new_status] || {
+                label: hist.new_status,
+                color: "text-slate-700",
+                bg: "bg-slate-100",
+              };
+
+              return (
+                <div key={hist.id || index} className="relative pr-8 space-y-1">
+                  <div className="absolute right-1.5 top-1.5 w-3 h-3 rounded-full bg-blue-900 border-2 border-white ring-2 ring-slate-200" />
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${histStatus.bg} ${histStatus.color}`}
+                    >
+                      {histStatus.label}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      {formatCairoDate(hist.created_at)}
+                    </span>
+                    {hist.actor && (
+                      <span className="text-[11px] text-slate-500 font-medium">
+                        ({hist.actor === "employee" ? "بواسطة: الموظف" : `بواسطة: ${hist.actor}`})
+                      </span>
+                    )}
+                  </div>
+                  {hist.note && (
+                    <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-1">
+                      {formatStatusHistoryNote(hist.note)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Messages & HR Responses */}
       <Card className="border-slate-200 bg-white shadow-xs">
         <CardHeader className="pb-3 border-b border-slate-100">
@@ -572,6 +627,7 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
               messages.map((m: any) => {
                 const isHR = m.sender_type === "hr";
                 const isInternal = Boolean(m.is_internal);
+                const msgAttachments = attachments.filter((a) => a.messageId === m.id);
 
                 return (
                   <div
@@ -603,6 +659,37 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
                         </span>
                       </div>
                       <p className="whitespace-pre-wrap">{m.message_body}</p>
+
+                      {msgAttachments.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-200/60 space-y-1.5">
+                          <span className="text-[11px] font-bold text-slate-600 block">
+                            المستندات المرفقة مع هذه الرسالة ({msgAttachments.length}):
+                          </span>
+                          {msgAttachments.map((att: any) => (
+                            <a
+                              key={att.id}
+                              href={att.downloadUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              download={att.filename}
+                              className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/90 hover:bg-white border border-slate-200 text-slate-800 transition-colors shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <FileDown className="w-3.5 h-3.5 text-blue-900 shrink-0" />
+                                <span className="truncate font-semibold">{att.filename}</span>
+                                {att.fileSize && (
+                                  <span className="text-[10px] text-slate-400 shrink-0">
+                                    ({formatBytesArabic(att.fileSize)})
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[11px] font-bold text-blue-900 shrink-0 hover:underline">
+                                تحميل / معاينة
+                              </span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -702,13 +789,11 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
                     onChange={(e) => setSelectedStatus(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-blue-600 bg-white"
                   >
-                    <option value="pending">في الانتظار (pending)</option>
-                    <option value="in_progress">قيد التنفيذ (in_progress)</option>
-                    <option value="awaiting_employee">
-                      بانتظار استكمال بيانات (awaiting_employee)
-                    </option>
-                    <option value="completed">مكتمل (completed)</option>
-                    <option value="rejected">مرفوض (rejected)</option>
+                    <option value="pending">في الانتظار</option>
+                    <option value="in_progress">قيد التنفيذ</option>
+                    <option value="awaiting_employee">بانتظار استكمال بيانات</option>
+                    <option value="completed">مكتمل</option>
+                    <option value="rejected">مرفوض</option>
                   </select>
                 </div>
 

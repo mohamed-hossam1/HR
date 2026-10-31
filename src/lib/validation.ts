@@ -119,3 +119,32 @@ export const STATUS_LABELS: Record<string, { label: string; color: string; bg: s
     bg: "bg-rose-50 border-rose-200",
   },
 };
+
+/**
+ * Translates and formats status history notes to pure Arabic.
+ * Examples:
+ * 'تم تغيير الحالة من "pending" إلى "completed"' -> 'تم تغيير الحالة من "في الانتظار" إلى "مكتمل"'
+ * 'تم تغيير الحالة من pending إلى completed' -> 'تم تغيير الحالة من "في الانتظار" إلى "مكتمل"'
+ */
+export function formatStatusHistoryNote(note?: string | null): string {
+  if (!note) return "";
+  let formatted = note;
+
+  const statusMap: Record<string, string> = {
+    awaiting_employee: "بانتظار استكمال بيانات",
+    in_progress: "قيد التنفيذ",
+    pending: "في الانتظار",
+    completed: "مكتمل",
+    rejected: "مرفوض",
+  };
+
+  for (const [enKey, arLabel] of Object.entries(statusMap)) {
+    const regex = new RegExp(`["']?\\b${enKey}\\b["']?`, "gi");
+    formatted = formatted.replace(regex, `"${arLabel}"`);
+  }
+
+  // Remove any redundant quotes
+  formatted = formatted.replace(/"{2,}/g, '"');
+
+  return formatted;
+}

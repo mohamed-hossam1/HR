@@ -70,16 +70,17 @@ export function ImageUploader({
     setIsProcessing(true);
 
     try {
-      const newItems: UploadedAttachment[] = [];
+      let completedCount = 0;
+      const totalFiles = filesToProcess.length;
+      setUploadStatus(
+        totalFiles > 1
+          ? `جاري معالجة ورفع ${totalFiles} صور بالتوازي...`
+          : "جاري تحسين ورفع الصورة..."
+      );
 
-      for (let i = 0; i < filesToProcess.length; i++) {
-        const file = filesToProcess[i];
-        setUploadStatus(`جاري تحسين وضغط الصورة (${i + 1} من ${filesToProcess.length})...`);
-
-        // 1. Client-side compression
+      const uploadSingleFile = async (file: File): Promise<UploadedAttachment> => {
+        // 1. Client-side fast compression
         const compressed = await compressClientImage(file);
-
-        setUploadStatus(`جاري رفع الصورة إلى التخزين الآمن...`);
 
         // 2. Request upload ticket
         const ticketRes = await fetch("/api/upload/ticket", {
@@ -100,22 +101,28 @@ export function ImageUploader({
 
         const ticket = await ticketRes.json();
 
-        // 3. Upload directly via PUT to Backblaze / Storage with proxy fallback
+        // 3. Upload directly via PUT to Backblaze / Storage with timeout and proxy fallback
         let isUploaded = false;
 
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000); // 6s timeout for direct S3
+
           const uploadRes = await fetch(ticket.uploadUrl, {
             method: "PUT",
             headers: {
               "Content-Type": compressed.file.type,
             },
             body: compressed.file,
+            signal: controller.signal,
           });
+          clearTimeout(timeoutId);
+
           if (uploadRes.ok) {
             isUploaded = true;
           }
         } catch (s3Err) {
-          console.warn("Direct image upload hit browser restriction, using secure fallback:", s3Err);
+          console.warn("Direct image upload hit network/CORS restriction, using secure fallback:", s3Err);
         }
 
         if (!isUploaded) {
@@ -135,7 +142,12 @@ export function ImageUploader({
           }
         }
 
-        newItems.push({
+        completedCount++;
+        if (totalFiles > 1) {
+          setUploadStatus(`تم رفع ${completedCount} من ${totalFiles} صور بنجاح...`);
+        }
+
+        return {
           ticketToken: ticket.ticketToken,
           fieldId,
           storageKey: ticket.storageKey,
@@ -144,9 +156,10 @@ export function ImageUploader({
           mimeType: compressed.file.type,
           previewUrl: compressed.previewUrl,
           originalSize: compressed.originalSize,
-        });
-      }
+        };
+      };
 
+      const newItems = await Promise.all(filesToProcess.map(uploadSingleFile));
       onAttachmentsChange([...attachments, ...newItems]);
       setUploadStatus(null);
     } catch (err: any) {

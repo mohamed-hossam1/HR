@@ -41,9 +41,11 @@ describe("StorageProvider", () => {
     expect(downloadUrl).toContain("my-document.jpg");
   });
 
-  it("returns storage usage statistics with soft limit comparison", async () => {
+  it("returns storage usage statistics with soft limit comparison and caches result", async () => {
     const provider = getStorageProvider();
+    const t0 = Date.now();
     const usage = await provider.getStorageUsage();
+    const elapsedFirst = Date.now() - t0;
 
     expect(usage).toBeDefined();
     expect(typeof usage.totalBytes).toBe("number");
@@ -51,6 +53,18 @@ describe("StorageProvider", () => {
     expect(["normal", "warning_70", "warning_85", "critical_95", "exceeded"]).toContain(
       usage.warningLevel
     );
+
+    // Second call should return cached data instantly
+    const t1 = Date.now();
+    const cachedUsage = await provider.getStorageUsage();
+    const elapsedSecond = Date.now() - t1;
+
+    expect(cachedUsage).toEqual(usage);
+    expect(elapsedSecond).toBeLessThanOrEqual(elapsedFirst);
+
+    // forceRefresh should also return valid usage
+    const refreshed = await provider.getStorageUsage(true);
+    expect(refreshed.totalBytes).toBe(usage.totalBytes);
   });
 
   it("directly uploads, verifies, and deletes an object", async () => {

@@ -20,6 +20,7 @@ import { generateNextCaseReference } from "../case-reference";
 import {
   commonEmployeeFieldsSchema,
   normalizeEgyptianPhone,
+  formatStatusHistoryNote,
 } from "../validation";
 import { validateDynamicFormAnswers } from "../dynamic-form";
 import { linkCaseToDevice, isDeviceAuthorizedForCase } from "../device-token";
@@ -133,34 +134,36 @@ export class CaseService {
       });
     }
 
-    // 7. Verify and record attachments
+    // 7. Verify and record attachments concurrently
     if (input.uploadedAttachments.length > 0) {
       const storageProvider = getStorageProvider();
 
-      for (const att of input.uploadedAttachments) {
-        // Verify object presence in storage
-        const meta = await storageProvider.verifyUploadedObject(att.storageKey);
-        if (!meta.exists) {
-          console.warn(`Attachment ${att.storageKey} not found in storage during finalization`);
-        }
+      await Promise.all(
+        input.uploadedAttachments.map(async (att) => {
+          // Verify object presence in storage
+          const meta = await storageProvider.verifyUploadedObject(att.storageKey);
+          if (!meta.exists) {
+            console.warn(`Attachment ${att.storageKey} not found in storage during finalization`);
+          }
 
-        await db.insert(attachments).values({
-          case_id: newCase.id,
-          original_filename: att.filename,
-          storage_key: att.storageKey,
-          file_type: att.mimeType,
-          file_size: meta.size || att.fileSize,
-          uploader_type: "employee",
-          field_name: att.fieldId,
-          is_verified: meta.exists,
-        });
+          await db.insert(attachments).values({
+            case_id: newCase.id,
+            original_filename: att.filename,
+            storage_key: att.storageKey,
+            file_type: att.mimeType,
+            file_size: meta.size || att.fileSize,
+            uploader_type: "employee",
+            field_name: att.fieldId,
+            is_verified: meta.exists,
+          });
 
-        // Mark ticket used
-        await db
-          .update(upload_tickets)
-          .set({ is_used: true, case_id: newCase.id })
-          .where(eq(upload_tickets.storage_key, att.storageKey));
-      }
+          // Mark ticket used
+          await db
+            .update(upload_tickets)
+            .set({ is_used: true, case_id: newCase.id })
+            .where(eq(upload_tickets.storage_key, att.storageKey));
+        })
+      );
     }
 
     // 8. Insert initial status history
@@ -168,7 +171,7 @@ export class CaseService {
       case_id: newCase.id,
       previous_status: null,
       new_status: "pending",
-      actor: "employee",
+      actor: "الموظف",
       note: "تم تقديم الطلب بنجاح",
     });
 
@@ -279,11 +282,17 @@ export class CaseService {
     const storageProvider = getStorageProvider();
 
     // 1. Get status history
-    const history = await db
+    const rawHistory = await db
       .select()
       .from(case_status_history)
       .where(eq(case_status_history.case_id, caseRecord.id))
       .orderBy(desc(case_status_history.created_at));
+
+    const history = rawHistory.map((h) => ({
+      ...h,
+      note: formatStatusHistoryNote(h.note),
+      actor: h.actor === "employee" ? "الموظف" : h.actor,
+    }));
 
     // 2. Get messages (filter out internal notes for employees!)
     const allMessages = await db
@@ -312,6 +321,7 @@ export class CaseService {
         );
         return {
           id: att.id,
+          messageId: att.message_id,
           filename: att.original_filename,
           fileType: att.file_type,
           fileSize: att.file_size,

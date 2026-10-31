@@ -10,6 +10,7 @@ import { z } from "zod";
 const messagePayloadSchema = z.object({
   messageBody: z.string().trim().min(1, "نص الرسالة مطلوب").max(2000, "الرسالة طويلة جداً"),
   isInternal: z.boolean().default(false),
+  senderPortal: z.enum(["admin", "employee"]).optional().default("employee"),
   attachments: z
     .array(
       z.object({
@@ -41,29 +42,6 @@ export async function POST(
       return NextResponse.json({ error: "المعاملة غير موجودة" }, { status: 404 });
     }
 
-    // Determine sender: HR manager or Employee
-    const session = await auth.api.getSession({ headers: req.headers });
-    const isManager = Boolean(session);
-
-    let senderType: "employee" | "hr" = "employee";
-    let senderName = caseRecord.employee_name;
-
-    if (isManager) {
-      senderType = "hr";
-      senderName = "الموارد البشرية";
-    } else {
-      // Validate device token for employee
-      const deviceToken = req.cookies.get(DEVICE_COOKIE_NAME)?.value;
-      const isAuthorized = await isDeviceAuthorizedForCase(deviceToken, caseRecord.id);
-
-      if (!isAuthorized) {
-        return NextResponse.json(
-          { error: "غير مصرح لك بإرسال رسائل في هذه المعاملة" },
-          { status: 403 }
-        );
-      }
-    }
-
     const body = await req.json();
     const parsed = messagePayloadSchema.safeParse(body);
 
@@ -74,10 +52,42 @@ export async function POST(
       );
     }
 
-    const { messageBody, isInternal, attachments: newAttachments } = parsed.data;
+    const { messageBody, isInternal, attachments: newAttachments, senderPortal } = parsed.data;
+
+    // Check manager session
+    const session = await auth.api.getSession({ headers: req.headers });
+    const isManager = Boolean(session);
+
+    let senderType: "employee" | "hr" = "employee";
+    let senderName = caseRecord.employee_name;
+
+    if (senderPortal === "admin") {
+      if (!isManager) {
+        return NextResponse.json(
+          { error: "غير مصرح لك بإرسال رد كإدارة موارد بشرية" },
+          { status: 401 }
+        );
+      }
+      senderType = "hr";
+      senderName = "الموارد البشرية";
+    } else {
+      // Message submitted from employee portal
+      senderType = "employee";
+      senderName = caseRecord.employee_name;
+
+      const deviceToken = req.cookies.get(DEVICE_COOKIE_NAME)?.value;
+      const isAuthorized = await isDeviceAuthorizedForCase(deviceToken, caseRecord.id);
+
+      if (!isAuthorized && !isManager) {
+        return NextResponse.json(
+          { error: "غير مصرح لك بإرسال رسائل في هذه المعاملة" },
+          { status: 403 }
+        );
+      }
+    }
 
     // Only HR can write internal notes!
-    const effectiveIsInternal = isManager ? isInternal : false;
+    const effectiveIsInternal = senderType === "hr" ? isInternal : false;
 
     // Insert message
     const [newMessage] = await db
@@ -92,28 +102,49 @@ export async function POST(
       .returning();
 
     // Attachments for this message
+    const insertedAttachments: any[] = [];
     if (newAttachments && newAttachments.length > 0) {
       const storageProvider = getStorageProvider();
 
       for (const att of newAttachments) {
         const meta = await storageProvider.verifyUploadedObject(att.storageKey);
 
-        await db.insert(attachments).values({
-          case_id: caseRecord.id,
-          message_id: newMessage.id,
-          original_filename: att.filename,
-          storage_key: att.storageKey,
-          file_type: att.mimeType,
-          file_size: meta.size || att.fileSize,
-          uploader_type: senderType,
-          is_verified: meta.exists,
-        });
+        const [newAtt] = await db
+          .insert(attachments)
+          .values({
+            case_id: caseRecord.id,
+            message_id: newMessage.id,
+            original_filename: att.filename,
+            storage_key: att.storageKey,
+            file_type: att.mimeType,
+            file_size: meta.size || att.fileSize,
+            uploader_type: senderType,
+            is_verified: meta.exists,
+          })
+          .returning();
 
         // Mark ticket used
         await db
           .update(upload_tickets)
           .set({ is_used: true, case_id: caseRecord.id })
           .where(eq(upload_tickets.storage_key, att.storageKey));
+
+        const downloadUrl = await storageProvider.getAuthorizedDownloadUrl(
+          att.storageKey,
+          att.filename,
+          900
+        );
+
+        insertedAttachments.push({
+          id: newAtt.id,
+          messageId: newAtt.message_id,
+          filename: newAtt.original_filename,
+          fileType: newAtt.file_type,
+          fileSize: newAtt.file_size,
+          uploaderType: newAtt.uploader_type,
+          downloadUrl,
+          createdAt: newAtt.created_at,
+        });
       }
     }
 
@@ -126,7 +157,11 @@ export async function POST(
       })
       .where(eq(cases.id, caseRecord.id));
 
-    return NextResponse.json({ success: true, message: newMessage });
+    return NextResponse.json({
+      success: true,
+      message: newMessage,
+      attachments: insertedAttachments,
+    });
   } catch (error: any) {
     console.error("Failed to post message:", error);
     return NextResponse.json(

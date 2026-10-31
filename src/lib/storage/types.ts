@@ -60,7 +60,7 @@ export interface IStorageProvider {
   uploadDirect(key: string, body: Buffer | Uint8Array, contentType: string): Promise<void>;
 
   /**
-   * Computes or estimates storage usage statistics.
+   * Computes or estimates storage usage statistics (supports caching).
    */
-  getStorageUsage(): Promise<StorageUsageSummary>;
+  getStorageUsage(forceRefresh?: boolean): Promise<StorageUsageSummary>;
 }

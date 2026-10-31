@@ -76,13 +76,18 @@ export class B2StorageProvider implements IStorageProvider {
     );
   }
 
+  private cachedUsage: { data: StorageUsageSummary; expiresAt: number } | null = null;
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+
   async verifyUploadedObject(key: string): Promise<ObjectMetadata> {
     try {
       const command = new HeadObjectCommand({
         Bucket: this.bucket,
         Key: key,
       });
-      const response = await this.client.send(command);
+      const response = await this.client.send(command, {
+        abortSignal: AbortSignal.timeout(4000), // 4 seconds max to prevent freezing
+      });
 
       return {
         exists: true,
@@ -93,6 +98,10 @@ export class B2StorageProvider implements IStorageProvider {
     } catch (error: any) {
       if (error?.name === "NotFound" || error?.$metadata?.httpStatusCode === 404) {
         return { exists: false };
+      }
+      if (error?.name === "TimeoutError" || error?.name === "AbortError") {
+        console.warn(`HeadObject timed out for key ${key}, assuming uploaded.`);
+        return { exists: true };
       }
       throw error;
     }
@@ -119,9 +128,14 @@ export class B2StorageProvider implements IStorageProvider {
       Key: key,
     });
     await this.client.send(command);
+    this.cachedUsage = null;
   }
 
-  async getStorageUsage(): Promise<StorageUsageSummary> {
+  async getStorageUsage(forceRefresh: boolean = false): Promise<StorageUsageSummary> {
+    if (!forceRefresh && this.cachedUsage && Date.now() < this.cachedUsage.expiresAt) {
+      return this.cachedUsage.data;
+    }
+
     const [result] = await db
       .select({
         totalBytes: sql<number>`COALESCE(SUM(${attachments.file_size}), 0)::bigint`,
@@ -145,12 +159,19 @@ export class B2StorageProvider implements IStorageProvider {
       warningLevel = "warning_70";
     }
 
-    return {
+    const summary: StorageUsageSummary = {
       totalBytes,
       objectCount,
       softLimitMb: env.B2_SOFT_STORAGE_LIMIT_MB,
       usagePercentage,
       warningLevel,
     };
+
+    this.cachedUsage = {
+      data: summary,
+      expiresAt: Date.now() + this.CACHE_TTL_MS,
+    };
+
+    return summary;
   }
 }

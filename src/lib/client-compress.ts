@@ -16,13 +16,56 @@ export interface CompressImageOptions {
 }
 
 const DEFAULT_OPTIONS: CompressImageOptions = {
-  maxWidth: 2048,
-  maxHeight: 2048,
-  quality: 0.82,
+  maxWidth: 1600,
+  maxHeight: 1600,
+  quality: 0.78,
   maxAllowedSizeBytes: 5 * 1024 * 1024, // 5 MiB
 };
 
 const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+/**
+ * Loads an image from a File blob using createImageBitmap (fastest, off-thread)
+ * or falling back to URL.createObjectURL (fast, no base64 memory overhead).
+ */
+async function loadImageElement(
+  file: File
+): Promise<{ source: ImageBitmap | HTMLImageElement; width: number; height: number; cleanup: () => void }> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(file);
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        cleanup: () => bitmap.close?.(),
+      };
+    } catch {
+      // Fallback to HTMLImageElement if createImageBitmap fails on some formats
+    }
+  }
+
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error("الملف المحدد ليس صورة صالحة أو أنه تالف."));
+    };
+
+    img.onload = () => {
+      resolve({
+        source: img,
+        width: img.naturalWidth || img.width,
+        height: img.naturalHeight || img.height,
+        cleanup: () => URL.revokeObjectURL(objectUrl),
+      });
+    };
+
+    img.src = objectUrl;
+  });
+}
 
 /**
  * Validates and compresses an image file in the browser using HTML5 Canvas.
@@ -40,105 +83,91 @@ export async function compressClientImage(
     );
   }
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  const { source, width: origWidth, height: origHeight, cleanup } = await loadImageElement(file);
 
-    reader.onerror = () => {
-      reject(new Error("تعذر قراءة ملف الصورة. يرجى إعادة المحاولة."));
-    };
+  try {
+    let width = origWidth;
+    let height = origHeight;
 
-    reader.onload = (event) => {
-      const img = new Image();
+    const maxW = opts.maxWidth || 1600;
+    const maxH = opts.maxHeight || 1600;
 
-      img.onerror = () => {
-        reject(new Error("الملف المحدد ليس صورة صالحة أو أنه تالف."));
-      };
+    // Calculate proportional scale down (no upscaling)
+    if (width > maxW || height > maxH) {
+      const ratio = Math.min(maxW / width, maxH / height);
+      width = Math.max(1, Math.round(width * ratio));
+      height = Math.max(1, Math.round(height * ratio));
+    }
 
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
 
-        // Calculate proportional scale down (no upscaling)
-        if (width > (opts.maxWidth || 2048) || height > (opts.maxHeight || 2048)) {
-          const ratio = Math.min(
-            (opts.maxWidth || 2048) / width,
-            (opts.maxHeight || 2048) / height
-          );
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      throw new Error("تعذر تهيئة معالج الصور في المتصفح.");
+    }
 
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
+    // Fill white background for transparent PNG/WebP so converting to JPEG looks perfect
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, width, height);
 
-        const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          reject(new Error("تعذر تهيئة معالج الصور في المتصفح."));
-          return;
-        }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "medium";
+    ctx.drawImage(source, 0, 0, width, height);
 
-        // Use high quality image smoothing
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(img, 0, 0, width, height);
+    // Standardize output to image/jpeg for highest compression and speed
+    const outputMime = "image/jpeg";
 
-        // Prefer WebP or JPEG for optimal compression
-        const outputMime = file.type === "image/png" ? "image/png" : "image/jpeg";
+    return await new Promise<CompressedImageResult>((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("فشل ضغط الصورة. يرجى تجربة صورة أخرى."));
+            return;
+          }
 
-        canvas.toBlob(
-          (blob) => {
-            if (!blob) {
-              reject(new Error("فشل ضغط الصورة. يرجى تجربة صورة أخرى."));
-              return;
-            }
-
-            // Check if final size is within the allowed limit (5 MiB)
-            if (blob.size > (opts.maxAllowedSizeBytes || 5 * 1024 * 1024)) {
-              reject(
-                new Error(
-                  `حجم الصورة بعد الضغط (${(blob.size / (1024 * 1024)).toFixed(
-                    1
-                  )} ميجابايت) يتجاوز الحد الأقصى المسموح به (5 ميجابايت).`
-                )
-              );
-              return;
-            }
-
-            const fileNameParts = file.name.split(".");
-            const baseName = fileNameParts.slice(0, -1).join(".") || "image";
-            const ext = outputMime === "image/png" ? "png" : "jpg";
-            const compressedFile = new File([blob], `${baseName}.${ext}`, {
-              type: outputMime,
-              lastModified: Date.now(),
-            });
-
-            const previewUrl = URL.createObjectURL(blob);
-            const reduction = Math.max(
-              0,
-              Math.round(((file.size - blob.size) / file.size) * 100)
+          if (blob.size > (opts.maxAllowedSizeBytes || 5 * 1024 * 1024)) {
+            reject(
+              new Error(
+                `حجم الصورة بعد الضغط (${(blob.size / (1024 * 1024)).toFixed(
+                  1
+                )} ميجابايت) يتجاوز الحد الأقصى المسموح به (5 ميجابايت).`
+              )
             );
+            return;
+          }
 
-            resolve({
-              file: compressedFile,
-              previewUrl,
-              originalSize: file.size,
-              compressedSize: blob.size,
-              width,
-              height,
-              reductionPercentage: reduction,
-            });
-          },
-          outputMime,
-          opts.quality
-        );
-      };
+          const fileNameParts = file.name.split(".");
+          const baseName = fileNameParts.slice(0, -1).join(".") || "image";
+          const compressedFile = new File([blob], `${baseName}.jpg`, {
+            type: outputMime,
+            lastModified: Date.now(),
+          });
 
-      img.src = event.target?.result as string;
-    };
+          const previewUrl = URL.createObjectURL(blob);
+          const reduction = Math.max(
+            0,
+            Math.round(((file.size - blob.size) / file.size) * 100)
+          );
 
-    reader.readAsDataURL(file);
-  });
+          resolve({
+            file: compressedFile,
+            previewUrl,
+            originalSize: file.size,
+            compressedSize: blob.size,
+            width,
+            height,
+            reductionPercentage: reduction,
+          });
+        },
+        outputMime,
+        opts.quality || 0.78
+      );
+    });
+  } finally {
+    cleanup();
+  }
 }
 
 /**

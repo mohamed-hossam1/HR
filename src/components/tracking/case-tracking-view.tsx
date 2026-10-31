@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { STATUS_LABELS, formatCairoDate, formatBytesArabic } from "@/lib/validation";
+import { STATUS_LABELS, formatCairoDate, formatBytesArabic, formatStatusHistoryNote } from "@/lib/validation";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +53,7 @@ export function CaseTrackingView({ caseData }: CaseTrackingViewProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          senderPortal: "employee",
           messageBody: replyText.trim(),
           isInternal: false,
           attachments: replyAttachments.map((a) => ({
@@ -81,12 +82,15 @@ export function CaseTrackingView({ caseData }: CaseTrackingViewProps) {
         },
       ]);
 
-      // Add new attachments to employee attachments list if any
-      if (replyAttachments.length > 0) {
+      // Add new attachments with message association
+      if (data.attachments && data.attachments.length > 0) {
+        setAttachments((prev) => [...prev, ...data.attachments]);
+      } else if (replyAttachments.length > 0) {
         setAttachments((prev) => [
           ...prev,
           ...replyAttachments.map((a) => ({
             id: a.storageKey,
+            messageId: data.message.id,
             filename: a.filename,
             fileSize: a.fileSize,
             fileType: a.mimeType,
@@ -229,7 +233,7 @@ export function CaseTrackingView({ caseData }: CaseTrackingViewProps) {
                   </div>
                   {hist.note && (
                     <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 mt-1">
-                      {hist.note}
+                      {formatStatusHistoryNote(hist.note)}
                     </p>
                   )}
                 </div>
@@ -313,6 +317,8 @@ export function CaseTrackingView({ caseData }: CaseTrackingViewProps) {
             ) : (
               messages.map((m: any) => {
                 const isHR = m.sender_type === "hr";
+                const msgAttachments = attachments.filter((a) => a.messageId === m.id);
+
                 return (
                   <div
                     key={m.id}
@@ -334,6 +340,35 @@ export function CaseTrackingView({ caseData }: CaseTrackingViewProps) {
                         </span>
                       </div>
                       <p className="whitespace-pre-wrap">{m.message_body}</p>
+
+                      {msgAttachments.length > 0 && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-200/60 space-y-1.5">
+                          <span className="text-[11px] font-bold text-slate-500 block">
+                            المرفقات ({msgAttachments.length}):
+                          </span>
+                          {msgAttachments.map((att: any) => (
+                            <a
+                              key={att.id}
+                              href={att.downloadUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              download={att.filename}
+                              className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/90 hover:bg-white border border-slate-200 text-slate-800 transition-colors shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Paperclip className="w-3.5 h-3.5 text-blue-900 shrink-0" />
+                                <span className="truncate font-semibold">{att.filename}</span>
+                                {att.fileSize && (
+                                  <span className="text-[10px] text-slate-400 shrink-0">
+                                    ({formatBytesArabic(att.fileSize)})
+                                  </span>
+                                )}
+                              </div>
+                              <FileDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
