@@ -52,4 +52,20 @@ describe("StorageProvider", () => {
       usage.warningLevel
     );
   });
+
+  it("directly uploads, verifies, and deletes an object", async () => {
+    const provider = getStorageProvider();
+    const testKey = `test-unit/${Date.now()}-direct.txt`;
+    const content = Buffer.from("direct upload content");
+
+    await provider.uploadDirect(testKey, content, "text/plain");
+    const meta = await provider.verifyUploadedObject(testKey);
+
+    expect(meta.exists).toBe(true);
+    expect(meta.size).toBe(content.length);
+
+    await provider.deleteObject(testKey);
+    const afterDelete = await provider.verifyUploadedObject(testKey);
+    expect(afterDelete.exists).toBe(false);
+  });
 });

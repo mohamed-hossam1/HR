@@ -31,6 +31,8 @@ export class B2StorageProvider implements IStorageProvider {
         accessKeyId: env.B2_KEY_ID,
         secretAccessKey: env.B2_APPLICATION_KEY,
       },
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
     });
   }
 
@@ -42,11 +44,12 @@ export class B2StorageProvider implements IStorageProvider {
       throw new Error("تجاوزت سعة التخزين الحد المسموح به. يرجى التواصل مع إدارة النظام.");
     }
 
+    // Do NOT pass ContentLength or ContentType to PutObjectCommand when presigning!
+    // This ensures only the host header is signed, preventing signature mismatch
+    // when browsers send chunked data or custom headers via fetch().
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: params.key,
-      ContentType: params.contentType,
-      ContentLength: params.contentLength,
     });
 
     const expiresIn = params.expiresInSeconds || 900; // 15 minutes
@@ -60,6 +63,17 @@ export class B2StorageProvider implements IStorageProvider {
       },
       key: params.key,
     };
+  }
+
+  async uploadDirect(key: string, body: Buffer | Uint8Array, contentType: string): Promise<void> {
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: body,
+        ContentType: contentType,
+      })
+    );
   }
 
   async verifyUploadedObject(key: string): Promise<ObjectMetadata> {

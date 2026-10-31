@@ -175,14 +175,36 @@ export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps
         const ticket = await ticketRes.json();
 
         setUploadStatus("جاري رفع المستند السحابي...");
-        const uploadRes = await fetch(ticket.uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": uploadFile.type || "application/octet-stream" },
-          body: uploadFile,
-        });
+        let isUploaded = false;
 
-        if (!uploadRes.ok) {
-          throw new Error("فشل إرسال الملف إلى التخزين.");
+        try {
+          const uploadRes = await fetch(ticket.uploadUrl, {
+            method: "PUT",
+            headers: { "Content-Type": uploadFile.type || "application/octet-stream" },
+            body: uploadFile,
+          });
+          if (uploadRes.ok) {
+            isUploaded = true;
+          }
+        } catch (s3Err) {
+          console.warn("Direct upload hit browser restriction, using secure proxy fallback:", s3Err);
+        }
+
+        if (!isUploaded) {
+          const formData = new FormData();
+          formData.append("file", uploadFile);
+          formData.append("ticketToken", ticket.ticketToken);
+          formData.append("storageKey", ticket.storageKey);
+
+          const fallbackRes = await fetch("/api/upload/direct", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!fallbackRes.ok) {
+            const errJson = await fallbackRes.json().catch(() => ({}));
+            throw new Error(errJson.error || "فشل إرسال الملف إلى التخزين.");
+          }
         }
 
         newAttachmentsPayload.push({

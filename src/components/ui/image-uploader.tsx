@@ -100,17 +100,39 @@ export function ImageUploader({
 
         const ticket = await ticketRes.json();
 
-        // 3. Upload directly via PUT to Backblaze / Storage
-        const uploadRes = await fetch(ticket.uploadUrl, {
-          method: "PUT",
-          headers: {
-            "Content-Type": compressed.file.type,
-          },
-          body: compressed.file,
-        });
+        // 3. Upload directly via PUT to Backblaze / Storage with proxy fallback
+        let isUploaded = false;
 
-        if (!uploadRes.ok) {
-          throw new Error("فشل إرسال ملف الصورة إلى التخزين السحابي.");
+        try {
+          const uploadRes = await fetch(ticket.uploadUrl, {
+            method: "PUT",
+            headers: {
+              "Content-Type": compressed.file.type,
+            },
+            body: compressed.file,
+          });
+          if (uploadRes.ok) {
+            isUploaded = true;
+          }
+        } catch (s3Err) {
+          console.warn("Direct image upload hit browser restriction, using secure fallback:", s3Err);
+        }
+
+        if (!isUploaded) {
+          const formData = new FormData();
+          formData.append("file", compressed.file);
+          formData.append("ticketToken", ticket.ticketToken);
+          formData.append("storageKey", ticket.storageKey);
+
+          const fallbackRes = await fetch("/api/upload/direct", {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!fallbackRes.ok) {
+            const errJson = await fallbackRes.json().catch(() => ({}));
+            throw new Error(errJson.error || "فشل إرسال ملف الصورة إلى التخزين السحابي.");
+          }
         }
 
         newItems.push({

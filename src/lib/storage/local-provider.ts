@@ -47,6 +47,12 @@ export class LocalStorageProvider implements IStorageProvider {
     };
   }
 
+  async uploadDirect(key: string, body: Buffer | Uint8Array, _contentType: string): Promise<void> {
+    await this.ensureUploadDir(key);
+    const filePath = path.join(UPLOADS_DIR, key);
+    await fs.writeFile(filePath, body);
+  }
+
   async verifyUploadedObject(key: string): Promise<ObjectMetadata> {
     try {
       const filePath = path.join(UPLOADS_DIR, key);
