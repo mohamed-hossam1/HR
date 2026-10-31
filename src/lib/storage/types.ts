@@ -55,6 +55,11 @@ export interface IStorageProvider {
   deleteObject(key: string): Promise<void>;
 
   /**
+   * Directly uploads an object (server-side stream/buffer).
+   */
+  uploadDirect(key: string, body: Buffer | Uint8Array, contentType: string): Promise<void>;
+
+  /**
    * Computes or estimates storage usage statistics.
    */
   getStorageUsage(): Promise<StorageUsageSummary>;
