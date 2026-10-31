@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { FileText, ShieldCheck } from "lucide-react";
+import { FileText } from "lucide-react";
 
 export default function PortalLayout({
   children,
@@ -41,14 +41,6 @@ export default function PortalLayout({
               className="px-3 py-1.5 rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 font-semibold transition-colors"
             >
               استعلام ومتابعة
-            </Link>
-            <Link
-              href="/admin/login"
-              className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1"
-              title="دخول الإدارة"
-            >
-              <ShieldCheck className="w-4 h-4 inline-block ml-1" />
-              الإدارة
             </Link>
           </nav>
         </div>
