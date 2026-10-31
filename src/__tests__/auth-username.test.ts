@@ -67,3 +67,63 @@ describe("Better Auth Username Authentication", () => {
     expect(res.status).not.toBe(200);
   });
 });
+
+describe("Next.js 16 Proxy Authentication Guard", () => {
+  it("redirects unauthenticated /admin directly to /admin/login at HTTP level", async () => {
+    const { proxy } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    const req = new NextRequest("http://localhost:3000/admin");
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("http://localhost:3000/admin/login");
+  });
+
+  it("redirects unauthenticated nested /admin/:path directly to /admin/login", async () => {
+    const { proxy } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    const req = new NextRequest("http://localhost:3000/admin/requests");
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("http://localhost:3000/admin/login");
+  });
+
+  it("allows unauthenticated user to access /admin/login without redirect", async () => {
+    const { proxy } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    const req = new NextRequest("http://localhost:3000/admin/login");
+    const res = proxy(req);
+
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("redirects authenticated user visiting /admin/login to /admin", async () => {
+    const { proxy } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    const req = new NextRequest("http://localhost:3000/admin/login", {
+      headers: { cookie: "better-auth.session_token=valid-test-token" },
+    });
+    const res = proxy(req);
+
+    expect(res.status).toBe(307);
+    expect(res.headers.get("location")).toBe("http://localhost:3000/admin");
+  });
+
+  it("allows authenticated user to access /admin directly", async () => {
+    const { proxy } = await import("@/proxy");
+    const { NextRequest } = await import("next/server");
+
+    const req = new NextRequest("http://localhost:3000/admin", {
+      headers: { cookie: "better-auth.session_token=valid-test-token" },
+    });
+    const res = proxy(req);
+
+    expect(res.headers.get("location")).toBeNull();
+  });
+});
+

@@ -58,7 +58,7 @@ export default function RootLayout({
                 استعلام ومتابعة
               </Link>
               <Link
-                href="/admin"
+                href="/admin/login"
                 className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1"
                 title="دخول الإدارة"
               >
