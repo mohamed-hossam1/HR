@@ -7,10 +7,11 @@ import { env } from "@/lib/env";
 
 async function seedAdmin() {
   const email = process.env.ADMIN_INITIAL_EMAIL || env.ADMIN_INITIAL_EMAIL || "admin@portal.local";
+  const usernameValue = (process.env.ADMIN_INITIAL_USERNAME || env.ADMIN_INITIAL_USERNAME || "admin").toLowerCase().trim();
   const password = process.env.ADMIN_INITIAL_PASSWORD || env.ADMIN_INITIAL_PASSWORD || "AdminStrongPass2026!";
   const name = "مدير الموارد البشرية";
 
-  console.log(`Checking existing admin user for: ${email}...`);
+  console.log(`Checking existing admin user for: ${email} (username: ${usernameValue})...`);
 
   try {
     const existing = await db.select().from(user).where(eq(user.email, email)).limit(1);
@@ -19,6 +20,14 @@ async function seedAdmin() {
       console.log(`Admin user with email ${email} already exists (ID: ${existing[0].id}).`);
       const hashedPassword = await hashPassword(password);
       await db
+        .update(user)
+        .set({
+          username: usernameValue,
+          displayUsername: name,
+          updatedAt: new Date(),
+        })
+        .where(eq(user.id, existing[0].id));
+      await db
         .update(account)
         .set({
           accountId: existing[0].id,
@@ -26,7 +35,7 @@ async function seedAdmin() {
           updatedAt: new Date(),
         })
         .where(eq(account.userId, existing[0].id));
-      console.log(`Admin password and account updated successfully for ${email}.`);
+      console.log(`Admin user (username: ${usernameValue}) and credentials updated successfully.`);
       return;
     }
 
@@ -38,6 +47,8 @@ async function seedAdmin() {
       id: userId,
       email,
       name,
+      username: usernameValue,
+      displayUsername: name,
       emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -54,6 +65,7 @@ async function seedAdmin() {
     });
 
     console.log(`✅ HR Admin successfully created!`);
+    console.log(`   اسم المستخدم: ${usernameValue}`);
     console.log(`   البريد الإلكتروني: ${email}`);
     console.log(`   كلمة المرور: ${password}`);
   } catch (error) {

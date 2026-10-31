@@ -18,6 +18,7 @@ const envSchema = z.object({
   B2_APPLICATION_KEY: z.string().optional().default(""),
   B2_SOFT_STORAGE_LIMIT_MB: z.coerce.number().default(8000),
   ADMIN_INITIAL_EMAIL: z.string().optional().default("admin@portal.local"),
+  ADMIN_INITIAL_USERNAME: z.string().optional().default("admin"),
   ADMIN_INITIAL_PASSWORD: z.string().optional().default("AdminStrongPass2026!"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
@@ -36,6 +37,7 @@ export const env = envSchema.parse({
   B2_APPLICATION_KEY: process.env.B2_APPLICATION_KEY,
   B2_SOFT_STORAGE_LIMIT_MB: process.env.B2_SOFT_STORAGE_LIMIT_MB,
   ADMIN_INITIAL_EMAIL: process.env.ADMIN_INITIAL_EMAIL,
+  ADMIN_INITIAL_USERNAME: process.env.ADMIN_INITIAL_USERNAME,
   ADMIN_INITIAL_PASSWORD: process.env.ADMIN_INITIAL_PASSWORD,
   NODE_ENV: process.env.NODE_ENV,
 });

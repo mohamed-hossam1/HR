@@ -6,11 +6,11 @@ import { signIn } from "@/lib/auth-client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Lock, Mail, AlertCircle } from "lucide-react";
+import { ShieldCheck, Lock, User, AlertCircle } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,15 +21,17 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
-      const res = await signIn.email({
-        email: email.trim(),
+      const res = await signIn.username({
+        username: username.trim(),
         password: password,
       });
 
       if (res.error) {
         throw new Error(
-          res.error.message === "Invalid email or password"
-            ? "البريد الإلكتروني أو كلمة المرور غير صحيحة"
+          res.error.message === "Invalid username or password" ||
+          res.error.message === "INVALID_USERNAME_OR_PASSWORD" ||
+          res.error.code === "INVALID_USERNAME_OR_PASSWORD"
+            ? "اسم المستخدم أو كلمة المرور غير صحيحة"
             : res.error.message || "فشل تسجيل الدخول"
         );
       }
@@ -60,15 +62,17 @@ export default function AdminLoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                البريد الإلكتروني للإدارة
+                اسم المستخدم للإدارة
               </label>
               <div className="relative">
                 <Input
-                  type="email"
+                  type="text"
                   dir="ltr"
-                  placeholder="admin@portal.local"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin"
+                  autoCapitalize="none"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </div>
