@@ -36,10 +36,10 @@ import {
 
 interface AdminCaseDetailProps {
   initialCase: any;
-  auditLogs: any[];
+  auditLogs?: any[];
 }
 
-export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps) {
+export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
   const router = useRouter();
   const [caseData, setCaseData] = useState(initialCase);
   const [messages, setMessages] = useState<any[]>(initialCase.messages || []);
@@ -679,41 +679,6 @@ export function AdminCaseDetail({ initialCase, auditLogs }: AdminCaseDetailProps
               {isInternalNote ? "حفظ الملاحظة الداخلية" : "إرسال الرد والمستند"}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Audit History Card */}
-      <Card className="border-slate-200 bg-white shadow-xs">
-        <CardHeader className="pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2 text-slate-900 font-bold text-sm">
-            <History className="w-4 h-4 text-blue-900" />
-            <span>سجل تدقيق الإجراءات الإدارية (Audit Trail)</span>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="space-y-3">
-            {auditLogs.length === 0 ? (
-              <p className="text-xs text-slate-400">لا توجد سجلات تدقيق سابقة لهذه المعاملة.</p>
-            ) : (
-              auditLogs.map((log: any) => (
-                <div
-                  key={log.id}
-                  className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-xs space-y-1"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-slate-800">{log.action}</span>
-                    <span className="text-slate-400">{formatCairoDate(log.created_at)}</span>
-                  </div>
-                  <p className="text-slate-600">بواسطة: {log.actor}</p>
-                  {log.details && (
-                    <pre className="text-[11px] bg-white p-2 rounded border border-slate-200 text-slate-700 overflow-x-auto">
-                      {JSON.stringify(log.details, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
         </CardContent>
       </Card>
 
