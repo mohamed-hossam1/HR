@@ -43,10 +43,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </Link>
             ))}
             <Link
-              href="/track"
+              href="/requests"
               className="mr-2 inline-flex items-center gap-2 rounded-md bg-[#f9580e] px-4 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-[#dd4807]"
             >
-              الاستعلام الآن
+              تقديم طلب جديد
               <ArrowUpLeft className="h-4 w-4" />
             </Link>
           </nav>
