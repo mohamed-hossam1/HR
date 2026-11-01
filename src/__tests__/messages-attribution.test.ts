@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { cases, case_messages, attachments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { env } from "@/lib/env";
 
 describe("Message Sender Attribution and HR Attachments", () => {
   let testCaseRef: string;
@@ -35,7 +36,10 @@ describe("Message Sender Attribution and HR Attachments", () => {
 
     // 2. Authenticate admin
     const authRes = await auth.api.signInUsername({
-      body: { username: "hossam", password: "1234@Hossam" },
+      body: {
+        username: env.ADMIN_INITIAL_USERNAME,
+        password: env.ADMIN_INITIAL_PASSWORD,
+      },
       asResponse: true,
     });
     const setCookie = authRes.headers.get("set-cookie") || "";

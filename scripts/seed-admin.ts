@@ -8,7 +8,7 @@ import { env } from "@/lib/env";
 async function seedAdmin() {
   const email = process.env.ADMIN_INITIAL_EMAIL || env.ADMIN_INITIAL_EMAIL || "admin@portal.local";
   const usernameValue = (process.env.ADMIN_INITIAL_USERNAME || env.ADMIN_INITIAL_USERNAME || "admin").toLowerCase().trim();
-  const password = process.env.ADMIN_INITIAL_PASSWORD || env.ADMIN_INITIAL_PASSWORD || "AdminStrongPass2026!";
+  const password = process.env.ADMIN_INITIAL_PASSWORD || env.ADMIN_INITIAL_PASSWORD || "Hossam@1234";
   const name = "مدير الموارد البشرية";
 
   console.log(`Checking existing admin user for: ${email} (username: ${usernameValue})...`);

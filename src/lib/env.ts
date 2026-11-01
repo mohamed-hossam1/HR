@@ -19,7 +19,7 @@ const envSchema = z.object({
   B2_SOFT_STORAGE_LIMIT_MB: z.coerce.number().default(8000),
   ADMIN_INITIAL_EMAIL: z.string().optional().default("admin@portal.local"),
   ADMIN_INITIAL_USERNAME: z.string().optional().default("admin"),
-  ADMIN_INITIAL_PASSWORD: z.string().optional().default("AdminStrongPass2026!"),
+  ADMIN_INITIAL_PASSWORD: z.string().optional().default("Hossam@1234"),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });
 
