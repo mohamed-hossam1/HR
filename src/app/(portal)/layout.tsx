@@ -7,7 +7,6 @@ const navItems = [
   { href: "/", label: "الرئيسية" },
   { href: "/requests", label: "الطلبات" },
   { href: "/complaints", label: "الشكاوى والتظلمات" },
-  { href: "/track", label: "متابعة معاملة" },
 ];
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
@@ -43,10 +42,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </Link>
             ))}
             <Link
-              href="/requests"
+              href="/track"
               className="mr-2 inline-flex items-center gap-2 rounded-md bg-[#f9580e] px-4 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-[#dd4807]"
             >
-              تقديم طلب جديد
+              متابعة الشكوى
               <ArrowUpLeft className="h-4 w-4" />
             </Link>
           </nav>
@@ -67,6 +66,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href="/track"
+                className="mt-1 flex items-center justify-between gap-2 rounded-md bg-[#f9580e] px-4 py-3 text-sm font-extrabold text-white transition-colors hover:bg-[#dd4807]"
+              >
+                متابعة الشكوى
+                <ArrowUpLeft className="h-4 w-4" />
+              </Link>
             </nav>
           </details>
         </div>

@@ -3,10 +3,9 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { STATUS_LABELS, formatCairoDate } from "@/lib/validation";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Clock, ExternalLink, Trash2, Shield, AlertCircle } from "lucide-react";
+import { Clock, ExternalLink, Shield, AlertCircle } from "lucide-react";
 
 interface SavedCase {
   id: string;
@@ -17,50 +16,110 @@ interface SavedCase {
   submission_date: string;
 }
 
+function TrustedCasesSkeleton() {
+  return (
+    <section
+      className="mt-12 overflow-hidden rounded-xl border border-[#dedbd4] bg-white shadow-sm"
+      role="status"
+      aria-label="جارٍ تحميل معاملاتك السابقة"
+      aria-live="polite"
+    >
+      <div className="flex items-center justify-between gap-4 border-b border-[#ebe8e2] bg-[#f7f6f3] px-5 py-4 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="skeleton h-10 w-10 shrink-0 rounded-lg" />
+          <div className="w-full max-w-sm space-y-2">
+            <div className="skeleton h-4 w-48 max-w-full rounded" />
+            <div className="skeleton h-3 w-72 max-w-[85%] rounded" />
+          </div>
+        </div>
+        <div className="skeleton hidden h-8 w-36 rounded-md sm:block" />
+      </div>
+      <div className="divide-y divide-[#ebe8e2]">
+        {Array.from({ length: 2 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between gap-5 px-5 py-5 sm:px-6">
+            <div className="min-w-0 flex-1 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="skeleton h-4 w-36 rounded" />
+                <div className="skeleton h-5 w-20 rounded-full" />
+              </div>
+              <div className="skeleton h-3.5 w-52 max-w-[75%] rounded" />
+              <div className="skeleton h-3 w-28 rounded" />
+            </div>
+            <div className="skeleton h-9 w-32 shrink-0 rounded-md" />
+          </div>
+        ))}
+      </div>
+      <span className="sr-only">جارٍ تحميل معاملاتك السابقة...</span>
+    </section>
+  );
+}
+
 export function TrustedCasesList() {
   const [cases, setCases] = useState<SavedCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isClearing, setIsClearing] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+    let isActive = true;
+
     async function loadCases() {
       try {
-        const res = await fetch("/api/cases/my-cases");
-        if (res.ok) {
-          const data = await res.json();
-          setCases(data.cases || []);
-        }
+        const res = await fetch("/api/cases/my-cases", {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
+
+        const data = await res.json();
+        if (!isActive) return;
+        setCases(data.cases || []);
+        setLoadFailed(false);
       } catch (err) {
-        console.warn("Failed to load device cases:", err);
+        if (!isActive) return;
+        setLoadFailed(true);
+        if (!(err instanceof DOMException && err.name === "AbortError")) {
+          console.warn("Failed to load device cases:", err);
+        }
       } finally {
-        setIsLoading(false);
+        window.clearTimeout(timeoutId);
+        if (isActive) setIsLoading(false);
       }
     }
 
     loadCases();
-  }, []);
 
-  const handleClearDevice = async () => {
-    if (!confirm("هل أنت متأكد من رغبتك في إزالة الطلبات المحفوظة من هذا المتصفح؟ ستحتاج إلى كود المتابعة لفتحها مجدداً.")) {
-      return;
-    }
-
-    setIsClearing(true);
-    try {
-      await fetch("/api/cases/my-cases", { method: "DELETE" });
-      localStorage.removeItem("es_saved_cases");
-      setCases([]);
-    } catch (err) {
-      console.error("Failed to clear device:", err);
-    } finally {
-      setIsClearing(false);
-    }
-  };
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [retryKey]);
 
   if (isLoading) {
+    return <TrustedCasesSkeleton />;
+  }
+
+  if (loadFailed) {
     return (
-      <div className="py-8 text-center text-slate-400 text-sm animate-pulse">
-        جاري تحميل معاملاتك السابقة...
+      <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm sm:flex-row">
+        <div className="flex items-center gap-2 text-amber-900">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>تعذر تحميل معاملاتك السابقة الآن. تحقق من الاتصال وحاول مرة أخرى.</span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setIsLoading(true);
+            setRetryKey((key) => key + 1);
+          }}
+          className="shrink-0 border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+        >
+          إعادة المحاولة
+        </Button>
       </div>
     );
   }
@@ -83,17 +142,6 @@ export function TrustedCasesList() {
             </p>
           </div>
         </div>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleClearDevice}
-          disabled={isClearing}
-          className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 self-start sm:self-auto cursor-pointer"
-        >
-          <Trash2 className="w-3.5 h-3.5 ml-1" />
-          إزالة الطلبات من هذا الجهاز
-        </Button>
       </CardHeader>
 
       <CardContent className="p-0 divide-y divide-slate-100">

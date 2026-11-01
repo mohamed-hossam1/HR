@@ -6,12 +6,14 @@ import {
   attachments,
   case_status_history,
   case_messages,
-  case_audit_logs,
   upload_tickets,
+  trusted_devices,
+  trusted_device_cases,
 } from "@/db/schema";
 import {
   generateTrackingCode,
   hashTrackingCode,
+  hashDeviceToken,
   verifyTrackingCode,
   encryptSensitiveData,
   decryptSensitiveData,
@@ -25,7 +27,7 @@ import {
 import { validateDynamicFormAnswers } from "../dynamic-form";
 import { linkCaseToDevice, isDeviceAuthorizedForCase } from "../device-token";
 import { getStorageProvider } from "../storage";
-import { eq, and, desc, inArray } from "drizzle-orm";
+import { eq, and, desc, gt } from "drizzle-orm";
 
 export interface SubmitCaseInput {
   caseType: "request" | "complaint";
@@ -251,7 +253,9 @@ export class CaseService {
   static async getDeviceAuthorizedCases(deviceToken: string | undefined) {
     if (!deviceToken) return [];
 
-    const deviceCases = await db
+    const tokenHash = hashDeviceToken(deviceToken);
+
+    return db
       .select({
         id: cases.id,
         reference: cases.reference,
@@ -262,17 +266,20 @@ export class CaseService {
         last_updated_at: cases.last_updated_at,
       })
       .from(cases)
+      .innerJoin(
+        trusted_device_cases,
+        eq(trusted_device_cases.case_id, cases.id)
+      )
+      .innerJoin(
+        trusted_devices,
+        and(
+          eq(trusted_devices.id, trusted_device_cases.device_id),
+          eq(trusted_devices.device_token_hash, tokenHash),
+          eq(trusted_devices.is_revoked, false),
+          gt(trusted_devices.expires_at, new Date())
+        )
+      )
       .orderBy(desc(cases.submission_date));
-
-    // Filter by device authorization
-    const authorized = [];
-    for (const c of deviceCases) {
-      if (await isDeviceAuthorizedForCase(deviceToken, c.id)) {
-        authorized.push(c);
-      }
-    }
-
-    return authorized;
   }
 
   /**
