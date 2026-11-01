@@ -144,7 +144,7 @@ export function DynamicFormRenderer({ category }: DynamicFormRendererProps) {
             تم تسجيل {category.type === "request" ? "الطلب" : "الشكوى"} بنجاح
           </CardTitle>
           <CardDescription className="text-slate-600">
-            تم استلام بياناتك وسيتم مراجعتها من قبل إدارة الموارد البشرية.
+            تم استلام بياناتك وسيتم مراجعتها من قبل الإدارة المختصة بقطاع الكباري.
           </CardDescription>
         </CardHeader>
 

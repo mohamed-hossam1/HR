@@ -10,8 +10,21 @@ const cairo = Cairo({
 });
 
 export const metadata: Metadata = {
-  title: "بوابة خدمات العاملين | Employee Services Portal",
-  description: "بوابة تقديم الطلبات والشكاوى ومتابعتها إلكترونياً للعاملين",
+  applicationName: "بوابة قطاع الكباري — المقاولون العرب",
+  title: {
+    default: "المقاولون العرب | بوابة قطاع الكباري",
+    template: "%s | المقاولون العرب",
+  },
+  description:
+    "البوابة الإلكترونية لخدمات العاملين بقطاع الكباري والإنشاءات التخصصية بشركة المقاولون العرب",
+  openGraph: {
+    type: "website",
+    locale: "ar_EG",
+    siteName: "المقاولون العرب — قطاع الكباري والإنشاءات التخصصية",
+    title: "المقاولون العرب | بوابة قطاع الكباري",
+    description:
+      "البوابة الإلكترونية لخدمات العاملين بقطاع الكباري والإنشاءات التخصصية بشركة المقاولون العرب",
+  },
 };
 
 export default function RootLayout({

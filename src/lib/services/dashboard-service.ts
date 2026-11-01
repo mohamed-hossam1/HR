@@ -58,11 +58,11 @@ export class DashboardService {
 
     // Status breakdown for charts
     const statusBreakdown = [
-      { name: "في الانتظار", count: Number(stats?.pending || 0), fill: "#f59e0b" },
-      { name: "قيد التنفيذ", count: Number(stats?.inProgress || 0), fill: "#3b82f6" },
-      { name: "بانتظار بيانات", count: Number(stats?.awaitingEmployee || 0), fill: "#a855f7" },
-      { name: "مكتمل", count: Number(stats?.completed || 0), fill: "#10b981" },
-      { name: "مرفوض", count: Number(stats?.rejected || 0), fill: "#ef4444" },
+      { name: "في الانتظار", count: Number(stats?.pending || 0), fill: "#f5a012" },
+      { name: "قيد التنفيذ", count: Number(stats?.inProgress || 0), fill: "#334149" },
+      { name: "بانتظار بيانات", count: Number(stats?.awaitingEmployee || 0), fill: "#c79a57" },
+      { name: "مكتمل", count: Number(stats?.completed || 0), fill: "#1f8b67" },
+      { name: "مرفوض", count: Number(stats?.rejected || 0), fill: "#d95555" },
     ];
 
     // Top categories aggregation

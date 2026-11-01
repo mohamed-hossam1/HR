@@ -53,7 +53,7 @@ export default async function AdminStoragePage() {
       <div className="border-b border-slate-200 pb-5">
         <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2.5">
           <HardDrive className="w-6 h-6 text-blue-900" />
-          <span>مساحة التخزين السحابي (Backblaze B2)</span>
+          <span>إدارة مساحة التخزين السحابي</span>
         </h1>
         <p className="text-xs text-slate-500 mt-1">
           مراقبة تقديرية لاستهلاك المرفقات والمستندات المخزنة وحماية السعة المجانية
@@ -115,10 +115,10 @@ export default async function AdminStoragePage() {
         <Card className="p-5 border-slate-200 bg-white shadow-xs">
           <span className="text-xs text-slate-500 font-semibold">نوع مزود التخزين النشط</span>
           <p className="text-lg font-bold text-blue-900 mt-2">
-            {isB2 ? "Backblaze B2 (سحابي)" : "Local Storage (محلي)"}
+            {isB2 ? "تخزين سحابي خاص" : "تخزين محلي للتطوير"}
           </p>
           <span className="text-[11px] text-slate-400 mt-1 block">
-            {isB2 ? "حاوية خاصة مشفرة S3" : "بيئة التطوير والاختبار"}
+            {isB2 ? "حاوية ملفات خاصة ومشفرة" : "بيئة التطوير والاختبار"}
           </span>
         </Card>
       </div>
@@ -191,19 +191,7 @@ export default async function AdminStoragePage() {
         </CardContent>
       </Card>
 
-      {/* Provider Disclaimer Notice */}
-      <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex gap-3 text-xs text-slate-600">
-        <Info className="w-5 h-5 text-blue-800 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <p className="font-bold text-slate-800">إخلاء مسؤولية حول الإحصاءات التقديرية:</p>
-          <p className="leading-relaxed">
-            جميع الأرقام المعروضة في هذه الصفحة هي إحصاءات تقديرية محسوبة على مستوى التطبيق وقاعدة
-            البيانات. قد تختلف الأرقام الدقيقة لدى مزود الخدمة (Backblaze B2) بسبب الإصدارات السابقة
-            للملفات (versioning) أو الرؤوس الإضافية. يمكنك مراجعة لوحة تحكم حساب Backblaze B2 مباشرة
-            للاطلاع على إحصائيات الفواتير والحصص الرسمية.
-          </p>
-        </div>
-      </div>
+      
     </div>
   );
 }

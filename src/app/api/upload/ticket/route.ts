@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       }
       if (!HR_ALLOWED_MIMES.includes(mimeType.toLowerCase())) {
         return NextResponse.json(
-          { error: "نوع الملف غير مسموح به لملفات الموارد البشرية (يسمح فقط بـ PDF, Word, Excel, صور)" },
+          { error: "نوع الملف غير مسموح به (يسمح فقط بملفات بي دي إف، وورد، إكسل، والصور)" },
           { status: 400 }
         );
       }

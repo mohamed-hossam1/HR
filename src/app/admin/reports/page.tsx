@@ -42,7 +42,7 @@ export default async function AdminReportsPage() {
       <div className="border-b border-slate-200 pb-5">
         <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2.5">
           <FileSpreadsheet className="w-6 h-6 text-emerald-800" />
-          <span>التقارير وتصدير جداول Excel</span>
+          <span>التقارير وتصدير جداول البيانات</span>
         </h1>
         <p className="text-xs text-slate-500 mt-1">
           تصدير سجلات الطلبات والشكاوى إلى ملفات إكسل رسمية (.xlsx) مع معالجة حماية الصيغ الحسابية
@@ -106,7 +106,7 @@ export default async function AdminReportsPage() {
               className="w-full h-11 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs"
             >
               <FileDown className="w-4 h-4 ml-1.5" />
-              تنزيل ملف Excel (.xlsx)
+              تنزيل جدول البيانات (.xlsx)
             </Button>
           </div>
         </form>

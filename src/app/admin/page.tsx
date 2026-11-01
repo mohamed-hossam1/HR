@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -12,10 +13,7 @@ import {
   AlertOctagon,
   Clock,
   CheckCircle2,
-  XCircle,
-  HelpCircle,
   ArrowLeft,
-  Calendar,
   Eye,
 } from "lucide-react";
 
@@ -29,7 +27,7 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
   const session = await auth.api.getSession({ headers: reqHeaders });
 
   if (!session) {
-    redirect("/admin/login");
+    redirect("/admin/login?error=session_expired");
   }
 
   const { dateRange = "all" } = await searchParams;
@@ -50,91 +48,105 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Page Header & Filter Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-900">
-            لوحة الإحصائيات والمتابعة العامة
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            مرحباً بك، {session.user.name || "مدير الموارد البشرية"} — نظرة عامة على الطلبات والشكاوى
-          </p>
+      <section className="relative overflow-hidden rounded-xl bg-[#20272d] px-5 py-6 text-white shadow-[0_18px_45px_rgba(32,39,45,0.16)] sm:px-7">
+        <div className="absolute inset-y-0 left-0 w-1.5 bg-[#f9580e]" aria-hidden="true" />
+        <div className="absolute -left-16 -top-24 h-52 w-52 rounded-full border-[35px] border-[#f9580e]/8" aria-hidden="true" />
+        <div className="relative flex items-start justify-between gap-6">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-[10px] font-extrabold tracking-[0.08em] text-[#ff8a52]">
+              <span className="h-px w-7 bg-[#f9580e]" aria-hidden="true" />
+              نظام خدمات العاملين
+            </p>
+            <h1 className="text-2xl font-extrabold sm:text-3xl">لوحة متابعة قطاع الكباري</h1>
+            <p className="mt-2 text-xs leading-6 text-white/55">
+              مرحباً بك، {session.user.name || "مدير خدمات العاملين"} — نظرة عامة على طلبات وشكاوى العاملين
+            </p>
+          </div>
+          <Image
+            src="/brand/arab-contractors-logo.png"
+            alt="المقاولون العرب"
+            width={183}
+            height={40}
+            priority
+            className="hidden h-12 w-auto object-contain md:block"
+          />
         </div>
 
         {/* Date Filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+        <div className="relative mt-5 flex max-w-full items-center gap-1.5 overflow-x-auto pb-1">
           {filterOptions.map((opt) => (
             <Link
               key={opt.id}
               href={`/admin?dateRange=${opt.id}`}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`whitespace-nowrap rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
                 dateRange === opt.id
-                  ? "bg-blue-900 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
+                  ? "border-[#f9580e] bg-[#f9580e] text-white shadow-[0_5px_16px_rgba(249,88,14,0.2)]"
+                  : "border-white/10 bg-white/6 text-white/65 hover:border-white/20 hover:bg-white/10 hover:text-white"
               }`}
             >
               {opt.label}
             </Link>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Primary KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {/* Total Requests */}
-        <Card className="border-slate-200 bg-white shadow-xs p-5">
+        <Card className="border-[#dedbd4] border-t-[3px] border-t-[#f9580e] bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">إجمالي الطلبات</span>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-900 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#687078]">إجمالي الطلبات</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#fff0e8] text-[#d94700]">
               <FileText className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{stats.totalRequests}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#20272d]">{stats.totalRequests}</p>
           {stats.unreadRequests > 0 && (
-            <span className="inline-block mt-2 text-[11px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md">
+            <span className="mt-2 inline-block rounded-md bg-[#fff0e8] px-2 py-0.5 text-[11px] font-bold text-[#c63f00]">
               {stats.unreadRequests} طلب جديد غير مفتوح
             </span>
           )}
         </Card>
 
         {/* Total Complaints */}
-        <Card className="border-slate-200 bg-white shadow-xs p-5">
+        <Card className="border-[#dedbd4] border-t-[3px] border-t-[#20272d] bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">إجمالي الشكاوى</span>
-            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-900 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#687078]">إجمالي الشكاوى</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#eef0f1] text-[#20272d]">
               <AlertOctagon className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{stats.totalComplaints}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#20272d]">{stats.totalComplaints}</p>
           {stats.unreadComplaints > 0 && (
-            <span className="inline-block mt-2 text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md">
+            <span className="mt-2 inline-block rounded-md bg-[#eef0f1] px-2 py-0.5 text-[11px] font-bold text-[#3c464d]">
               {stats.unreadComplaints} شكوى جديدة غير مفتوحة
             </span>
           )}
         </Card>
 
         {/* Pending */}
-        <Card className="border-slate-200 bg-white shadow-xs p-5">
+        <Card className="border-[#dedbd4] border-t-[3px] border-t-[#c98a2d] bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">في الانتظار</span>
-            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#687078]">في الانتظار</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-[#fff7e8] text-[#a9680a]">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{stats.pending}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#20272d]">{stats.pending}</p>
           <span className="inline-block mt-2 text-[11px] text-slate-400">بانتظار بدء العمل</span>
         </Card>
 
         {/* Completed */}
-        <Card className="border-slate-200 bg-white shadow-xs p-5">
+        <Card className="border-[#dedbd4] border-t-[3px] border-t-[#1f8b67] bg-white p-5 shadow-xs">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-500">المكتملة بنجاح</span>
-            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <span className="text-xs font-semibold text-[#687078]">المكتملة بنجاح</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-50 text-[#167252]">
               <CheckCircle2 className="w-4 h-4" />
             </div>
           </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{stats.completed}</p>
+          <p className="mt-2 text-2xl font-extrabold text-[#20272d]">{stats.completed}</p>
           <span className="inline-block mt-2 text-[11px] text-emerald-700 font-semibold">
             تم إصدار الرد أو المستند
           </span>
@@ -142,24 +154,24 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
       </div>
 
       {/* Secondary Status Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-center justify-between">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="flex items-center justify-between rounded-xl border border-[#cfd3d5] bg-[#eef0f1]/70 p-4">
           <div>
-            <span className="text-xs font-semibold text-blue-900">قيد التنفيذ والمتابعة</span>
-            <p className="text-xl font-bold text-blue-950 mt-1">{stats.inProgress}</p>
+            <span className="text-xs font-semibold text-[#334149]">قيد التنفيذ والمتابعة</span>
+            <p className="mt-1 text-xl font-bold text-[#20272d]">{stats.inProgress}</p>
           </div>
-          <span className="text-xs text-blue-700">جاري معالجتها</span>
+          <span className="text-xs text-[#667078]">جاري معالجتها</span>
         </div>
 
-        <div className="p-4 bg-purple-50/70 border border-purple-200 rounded-2xl flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-xl border border-[#ead6bb] bg-[#fff8ed] p-4">
           <div>
-            <span className="text-xs font-semibold text-purple-900">بانتظار استكمال بيانات</span>
-            <p className="text-xl font-bold text-purple-950 mt-1">{stats.awaitingEmployee}</p>
+            <span className="text-xs font-semibold text-[#8c5d21]">بانتظار استكمال بيانات</span>
+            <p className="mt-1 text-xl font-bold text-[#6b461a]">{stats.awaitingEmployee}</p>
           </div>
-          <span className="text-xs text-purple-700">بانتظار رد الموظف</span>
+          <span className="text-xs text-[#9a6d35]">بانتظار رد الموظف</span>
         </div>
 
-        <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl flex items-center justify-between">
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50/70 p-4">
           <div>
             <span className="text-xs font-semibold text-rose-900">المرفوضة</span>
             <p className="text-xl font-bold text-rose-950 mt-1">{stats.rejected}</p>
@@ -172,14 +184,15 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
       <DashboardCharts statusBreakdown={statusBreakdown} topCategories={topCategories} />
 
       {/* Recent Incoming Cases Table */}
-      <Card className="border-slate-200 bg-white shadow-xs">
-        <CardHeader className="border-b border-slate-100 px-6 py-4 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold text-slate-900">
+      <Card className="border-[#dedbd4] bg-white shadow-xs">
+        <CardHeader className="flex flex-row items-center justify-between border-b border-[#ebe8e2] px-6 py-4">
+          <CardTitle className="flex items-center gap-2 text-sm font-bold text-[#20272d]">
+            <span className="h-4 w-1 rounded-full bg-[#f9580e]" aria-hidden="true" />
             أحدث المعاملات الواردة
           </CardTitle>
           <Link
             href="/admin/requests"
-            className="text-xs font-bold text-blue-900 hover:underline flex items-center gap-1"
+            className="flex items-center gap-1 text-xs font-bold text-[#c63f00] hover:underline"
           >
             <span>عرض كل الطلبات</span>
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -192,7 +205,7 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
             </p>
           ) : (
             <table className="w-full text-right text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+              <thead className="border-b border-[#dedbd4] bg-[#f4f3f0] font-semibold text-[#586169]">
                 <tr>
                   <th className="p-3.5 pr-6">رقم المعاملة</th>
                   <th className="p-3.5">النوع</th>
@@ -219,14 +232,14 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                   return (
                     <tr
                       key={c.id}
-                      className={`hover:bg-slate-50/80 transition-colors ${
-                        c.is_unread ? "bg-blue-50/30 font-medium" : ""
+                      className={`transition-colors hover:bg-[#fff8f4] ${
+                        c.is_unread ? "bg-[#fff4ee] font-medium" : ""
                       }`}
                     >
-                      <td className="p-3.5 pr-6 font-mono font-bold text-blue-950 flex items-center gap-2">
+                      <td className="flex items-center gap-2 p-3.5 pr-6 font-mono font-bold text-[#20272d]">
                         {c.is_unread && (
                           <span
-                            className="w-2 h-2 rounded-full bg-blue-600 shrink-0"
+                            className="h-2 w-2 shrink-0 rounded-full bg-[#f9580e]"
                             title="معاملة جديدة غير مفتوحة"
                           />
                         )}
@@ -236,8 +249,8 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                         <span
                           className={`px-2 py-0.5 rounded-md text-[11px] font-semibold ${
                             c.case_type === "request"
-                              ? "bg-blue-50 text-blue-800"
-                              : "bg-purple-50 text-purple-800"
+                              ? "bg-[#fff0e8] text-[#c63f00]"
+                              : "bg-[#eef0f1] text-[#334149]"
                           }`}
                         >
                           {c.case_type === "request" ? "طلب" : "شكوى"}
@@ -257,7 +270,7 @@ export default async function AdminDashboardPage({ searchParams }: AdminDashboar
                       <td className="p-3.5 pl-6 text-center">
                         <Link
                           href={detailHref}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-900 hover:text-white transition-colors"
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#eef0f1] px-3 py-1.5 text-xs font-semibold text-[#334149] transition-colors hover:bg-[#f9580e] hover:text-white"
                         >
                           <Eye className="w-3.5 h-3.5" />
                           <span>فتح المعاملة</span>

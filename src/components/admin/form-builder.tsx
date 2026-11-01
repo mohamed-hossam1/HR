@@ -343,8 +343,8 @@ export function FormBuilder({ initialData, isNew = false }: FormBuilderProps) {
                   disabled={!isNew}
                   className="w-full h-10 px-3 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-blue-600"
                 >
-                  <option value="request">طلب (Request)</option>
-                  <option value="complaint">شكوى وتظلم (Complaint)</option>
+                  <option value="request">طلب</option>
+                  <option value="complaint">شكوى أو تظلم</option>
                 </select>
               </div>
 
@@ -523,13 +523,13 @@ export function FormBuilder({ initialData, isNew = false }: FormBuilderProps) {
                           }
                           className="w-full h-11 px-3 rounded-xl border border-slate-300 text-xs bg-white focus:ring-2 focus:ring-blue-600"
                         >
-                          <option value="text">نص قصير (Short Text)</option>
-                          <option value="textarea">نص متعدد الأسطر (Multiline Text)</option>
-                          <option value="number">رقم (Number)</option>
-                          <option value="currency">مبلغ مالي (Currency EGP)</option>
-                          <option value="date">تاريخ (Date)</option>
-                          <option value="select">قائمة منسدلة (Select Dropdown)</option>
-                          <option value="image">مرفق صورة (Image Upload)</option>
+                          <option value="text">نص قصير</option>
+                          <option value="textarea">نص متعدد الأسطر</option>
+                          <option value="number">رقم</option>
+                          <option value="currency">مبلغ مالي بالجنيه المصري</option>
+                          <option value="date">تاريخ</option>
+                          <option value="select">قائمة منسدلة</option>
+                          <option value="image">إرفاق صورة</option>
                         </select>
                       </div>
 

@@ -8,16 +8,16 @@ export function cn(...inputs: any[]) {
 }
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.98]",
+  "inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-bold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-blue-900 text-white shadow-xs hover:bg-blue-800",
+        default: "bg-[#f9580e] text-white shadow-sm hover:bg-[#dd4807] hover:shadow-md",
         destructive: "bg-rose-600 text-white shadow-xs hover:bg-rose-700",
-        outline: "border border-slate-300 bg-white hover:bg-slate-50 text-slate-700",
+        outline: "border border-slate-300 bg-white hover:border-orange-400 hover:bg-orange-50 text-slate-800",
         secondary: "bg-slate-100 text-slate-800 hover:bg-slate-200",
         ghost: "hover:bg-slate-100 text-slate-700",
-        link: "text-blue-900 underline-offset-4 hover:underline",
+        link: "text-[#c63f00] underline-offset-4 hover:underline",
         success: "bg-emerald-600 text-white shadow-xs hover:bg-emerald-700",
       },
       size: {

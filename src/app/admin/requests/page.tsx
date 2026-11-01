@@ -91,7 +91,7 @@ export default async function AdminRequestsPage({ searchParams }: RequestsPagePr
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700 text-white hover:bg-emerald-800 text-xs font-bold transition-colors shadow-xs self-start sm:self-auto"
         >
           <FileDown className="w-4 h-4" />
-          <span>تصدير Excel للنتائج</span>
+          <span>تصدير النتائج إلى جدول بيانات</span>
         </a>
       </div>
 

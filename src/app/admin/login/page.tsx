@@ -6,7 +6,7 @@ import { signIn, useSession } from "@/lib/auth-client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Lock, User, AlertCircle } from "lucide-react";
+import { Lock, AlertCircle, Bridge } from "lucide-react";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,8 +17,11 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (session) {
-      router.replace("/admin");
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (session && !params.has("error")) {
+        router.replace("/admin");
+      }
     }
   }, [session, router]);
 
@@ -53,15 +56,18 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-100/70">
-      <Card className="w-full max-w-md border-slate-200/90 shadow-md bg-white">
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden p-4 bg-[#171d21]">
+      <div className="absolute inset-y-0 left-0 hidden w-1/2 bg-[url('/brand/bridge-detail.jpg')] bg-cover bg-center opacity-20 lg:block" />
+      <div className="absolute inset-y-0 left-0 hidden w-1/2 bg-gradient-to-r from-transparent to-[#171d21] lg:block" />
+      <Card className="relative w-full max-w-md border-white/10 shadow-2xl bg-white overflow-hidden">
+        <div className="h-1.5 bg-[#f9580e]" />
         <CardHeader className="text-center pb-4">
-          <div className="w-14 h-14 bg-blue-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
-            <ShieldCheck className="w-8 h-8" />
+          <div className="w-14 h-14 bg-[#20272d] text-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+            <Bridge className="w-7 h-7" />
           </div>
           <CardTitle className="text-2xl text-slate-900 font-bold">تسجيل دخول الإدارة</CardTitle>
           <CardDescription className="text-slate-500 text-xs mt-1">
-            بوابة إدارة طلبات وشكاوى العاملين — الموارد البشرية
+            بوابة خدمات العاملين — قطاع الكباري والإنشاءات التخصصية
           </CardDescription>
         </CardHeader>
 
@@ -75,7 +81,7 @@ export default function AdminLoginPage() {
                 <Input
                   type="text"
                   dir="ltr"
-                  placeholder="admin"
+                  placeholder="اسم المستخدم"
                   autoCapitalize="none"
                   autoComplete="username"
                   value={username}
@@ -120,7 +126,7 @@ export default function AdminLoginPage() {
           </form>
 
           <div className="mt-6 pt-4 border-t border-slate-100 text-center text-[11px] text-slate-400">
-            التسجيل العام غير متاح. يتم تعيين حسابات الإدارة بواسطة مسؤول النظام فقط.
+            الدخول مخصص للمسؤولين المعتمدين بالقطاع، ولا يتاح التسجيل العام.
           </div>
         </CardContent>
       </Card>

@@ -518,7 +518,7 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
           <CardHeader className="pb-3 border-b border-emerald-100 flex flex-row items-center justify-between">
             <div className="flex items-center gap-2 text-emerald-950 font-bold text-sm">
               <FileCheck className="w-5 h-5 text-emerald-700" />
-              <span>المستندات والقرارات الصادرة من الموارد البشرية للموظف ({attachments.filter((a) => a.uploaderType === "hr").length})</span>
+              <span>المستندات والقرارات الصادرة من الإدارة المختصة بالقطاع ({attachments.filter((a) => a.uploaderType === "hr").length})</span>
             </div>
             <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
               مستندات صادرة ومتاحة للموظف
@@ -715,7 +715,7 @@ export function AdminCaseDetail({ initialCase }: AdminCaseDetailProps) {
             {/* Document Upload for HR */}
             <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
               <label className="block text-xs font-semibold text-slate-800">
-                إرفاق مستند رسمي (PDF, Word, Excel, صور — حتى 5 ميجابايت):
+                إرفاق مستند رسمي (بي دي إف، وورد، إكسل، أو صورة — حتى 5 ميجابايت):
               </label>
               <input
                 type="file"

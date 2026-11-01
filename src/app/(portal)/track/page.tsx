@@ -65,19 +65,20 @@ export default function TrackInquiryPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-6 space-y-8">
+    <div className="max-w-3xl mx-auto py-2 sm:py-6 space-y-8">
       <div className="text-center space-y-2">
+        <span className="eyebrow">متابعة إلكترونية آمنة</span>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-          استعلام ومتابعة الطلبات والشكاوى
+          استعلام ومتابعة معاملات قطاع الكباري
         </h1>
         <p className="text-sm text-slate-500">
           أدخل الرقم الثابت الخاص بك وكود المتابعة السري للاطلاع على حالة المعاملة والردود الرسمية
         </p>
       </div>
 
-      <Card className="border-slate-200 shadow-sm bg-white">
+      <Card className="border-[#dedbd4] shadow-lg bg-white overflow-hidden">
         <CardHeader className="border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2 text-blue-900 text-xs font-semibold">
+          <div className="flex items-center gap-2 text-[#c63f00] text-xs font-semibold">
             <Lock className="w-4 h-4" />
             <span>تسجيل الدخول للمعاملة</span>
           </div>
@@ -128,7 +129,7 @@ export default function TrackInquiryPage() {
                 id="remember_device"
                 checked={rememberDevice}
                 onChange={(e) => setRememberDevice(e.target.checked)}
-                className="w-4 h-4 text-blue-900 rounded-sm border-slate-300 focus:ring-blue-600 cursor-pointer"
+                className="w-4 h-4 accent-[#f9580e] rounded-sm border-slate-300 focus:ring-orange-500 cursor-pointer"
               />
               <label
                 htmlFor="remember_device"
@@ -158,13 +159,13 @@ export default function TrackInquiryPage() {
 
           {/* Lost Code Information Notice */}
           <div className="mt-8 pt-6 border-t border-slate-100 flex gap-3 bg-slate-50 p-4 rounded-xl text-xs text-slate-600">
-            <Info className="w-5 h-5 text-blue-800 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-[#c63f00] shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="font-bold text-slate-800">هل فقدت كود المتابعة؟</p>
               <p className="leading-relaxed">
                 لحماية سرية بياناتك ومستنداتك الشخصية، لا يمكن استرجاع كود المتابعة عبر الرسائل النصية
-                أو رقم الهاتف. في حال فقدان الكود وعدم تمكنك من فتح الطلب، يرجى مراجعة إدارة الموارد
-                البشرية مباشرة مصطحباً بطاقة الرقم القومي للتحقق من هويتك وإصدار كود جديد.
+                أو رقم الهاتف. في حال فقدان الكود وعدم تمكنك من فتح الطلب، يرجى مراجعة الإدارة
+                المختصة بالقطاع مباشرة مصطحبًا بطاقة الرقم القومي للتحقق من هويتك وإصدار كود جديد.
               </p>
             </div>
           </div>

@@ -18,10 +18,12 @@ export function proxy(request: NextRequest) {
     }
   }
 
-  // If navigating to /admin/login while already authenticated
+  // If navigating to /admin/login while already authenticated (unless there is an error parameter from an invalid session)
   if (pathname === "/admin/login" && isAuthenticated) {
-    const adminUrl = new URL("/admin", request.url);
-    return NextResponse.redirect(adminUrl);
+    if (!request.nextUrl.searchParams.has("error")) {
+      const adminUrl = new URL("/admin", request.url);
+      return NextResponse.redirect(adminUrl);
+    }
   }
 
   return NextResponse.next();
